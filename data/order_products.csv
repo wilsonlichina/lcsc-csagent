@@ -1,0 +1,6 @@
+order_id,product_id,product_name,quantity,unit_price
+LC123456,08-50-0113,Connector,20000,0.05
+LC123456,22-01-1042,Resistor,5000,0.02
+LC789012,42816-0212,Microcontroller Chip,200,11.75
+LC345678,08-50-0113,Connector,5000,0.05
+LC345678,22-01-1042,Resistor,10000,0.02

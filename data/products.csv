@@ -1,0 +1,5 @@
+product_id,name,category,unit_price,currency,stock_status,stock_quantity,min_order_qty,lead_time
+08-50-0113,Molex Connector,Connectors,0.05,CNY,In Stock,500000,1000,1-3 days
+22-01-1042,1K Ohm Resistor,Resistors,0.02,CNY,In Stock,1000000,100,1-3 days
+42816-0212,STM32 Microcontroller,Microcontrollers,11.75,USD,On Order,0,10,4-6 weeks
+75-12-3456,Ceramic Capacitor 10uF,Capacitors,0.08,USD,In Stock,250000,500,1-2 days

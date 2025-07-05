@@ -1,0 +1,4 @@
+order_id,customer_id,customer_email,status,create_time,total_amount,currency,shipping_address,shipping_status,tracking_number
+LC123456,CUST001,customer1@example.com,Confirmed,2024-07-01 10:30:00,1580.50,CNY,"Nanshan District, Shenzhen Technology Park, China",Pending Shipment,
+LC789012,CUST002,customer2@example.com,Shipped,2024-06-28 14:20:00,2350.00,USD,"123 Tech Street, San Francisco, CA 94105, USA",In Transit,SF1234567890
+LC345678,CUST003,customer3@example.com,Processing,2024-07-02 09:15:00,890.25,EUR,"Calle Mayor 45, Madrid 28013, Spain",Preparing,

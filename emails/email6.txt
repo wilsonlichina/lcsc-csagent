@@ -1,0 +1,19 @@
+Subject：Need MDS and/or MSDS
+ 
+Hello LCSC,
+ 
+We've been in contact before about us needing MDS and/or MSDS for a few components. It is no easy task since a few suppliers are not very cooperative.
+ 
+If we were to buy from Mouser or DigiKey we would get these documents, but we buy from LCSC as it's cheaper and LCSC has cooperation with JLCPCB who makes our PCB's.
+ 
+So with that we really beg LCSC to help us in this matter. As we have a very hard time contacting these companies our selves. We've for example tried to contact Injonic Technology 4 times with no luck.
+ 
+The reason we need MDS is quite simple.
+We need to know: CAS Number, Weight and Percentage of substance. For each component.
+We need this because we have to report substances into the global IMDS database. If we cannot provide the info we are forced to buy other parts from Mouser or DigiKey.
+ 
+Also, our spent amount at LCSC will significantly increase because our product is now launching globally together with a large global corporation. Our annual purchase should increase at least 5 times at LCSC or even more.
+ 
+Please assist us with this, it will be good for both of us.
+ 
+Thanks!
