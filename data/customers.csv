@@ -2,3 +2,9 @@ customer_id,name,email,phone,company,country,registration_date,vip_level
 CUST001,Zhang San,customer1@example.com,+86-138-0000-0001,Shenzhen Technology Co. Ltd.,China,2023-01-15,Gold
 CUST002,John Smith,customer2@example.com,+1-555-0123,Tech Solutions Inc,United States,2023-03-20,Silver
 CUST003,Maria Garcia,customer3@example.com,+34-600-123-456,European Electronics Ltd,Spain,2023-05-10,Bronze
+CUST004,Anonymous Customer,inquiry1@unknown.com,,Unknown Company,United States,2024-07-06,Bronze
+CUST005,Price Inquiry Customer,pricecheck@company.com,,Electronics Distributor,Unknown,2024-07-06,Bronze
+CUST006,Order Inquiry Customer,orderinfo@supplier.com,,Manufacturing Company,Unknown,2024-07-06,Bronze
+CUST007,Hydraulic Pipe Customer,hydraulic@inquiry.com,,Industrial Equipment Co,Unknown,2024-07-06,Bronze
+CUST008,Capacitor Quality Customer,quality@electronics.com,,Quality Control Dept,Unknown,2024-07-06,Silver
+CUST009,MSDS Request Customer,compliance@global.com,,Global Manufacturing Corp,Unknown,2024-07-06,Gold

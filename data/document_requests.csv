@@ -1,0 +1,4 @@
+request_id,customer_id,document_type,product_ids,status,request_date,priority,notes
+DOC001,CUST009,MDS/MSDS,Multiple Components,In Progress,2024-07-06,High,"Customer needs CAS Number, Weight and Percentage for IMDS database reporting. Annual purchase expected to increase 5x. Requires supplier cooperation."
+DOC002,CUST008,Quality Certificate,CC0402KRX7R9BB102;CL05B102KB5NNNC;CC0603KRX7R9BB473;CL10B473KB8NNNC,Completed,2024-07-06,Medium,"Label condition verification completed - all products have clean labels"
+DOC003,CUST004,Product Specification,CF-001,Pending,2024-07-06,Medium,"Crystal Filters specification and availability confirmation requested"
