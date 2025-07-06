@@ -26,6 +26,12 @@ email_state, email_functions = create_email_management_system(
     model_name="claude-3-7-sonnet"
 )
 
+# Model options for the dropdown
+MODEL_OPTIONS = [
+    ("Claude 3.5 Sonnet", "claude-3-5-sonnet"),
+    ("Claude 3.7 Sonnet", "claude-3-7-sonnet")
+]
+
 
 def refresh_emails():
     """
@@ -45,6 +51,36 @@ def refresh_emails():
     
     # Return new display data
     return email_functions['get_emails_for_display']()
+
+
+def change_model(model_name: str):
+    """
+    Change the AI model and reinitialize the email management system
+    
+    Args:
+        model_name: The model name to switch to
+    """
+    global email_state, email_functions
+    
+    # Create new email management system with the selected model
+    email_state, email_functions = create_email_management_system(
+        emails_dir="./emails",
+        model_name=model_name
+    )
+
+
+def toggle_sidebar(sidebar_visible: bool):
+    """
+    Toggle sidebar visibility
+    
+    Args:
+        sidebar_visible: Current sidebar visibility state
+        
+    Returns:
+        Updated visibility state and the new state value
+    """
+    new_state = not sidebar_visible
+    return gr.update(visible=new_state), new_state
 
 
 def view_email_details(evt: gr.SelectData):
@@ -109,142 +145,13 @@ def handle_ai_copilot(selected_idx: int):
 
 def create_interface():
     """
-    Create the enhanced Gradio interface using functional email management
+    Create the Gradio interface with sidebar using functional email management
     
-    Key Enhancements:
-    1. Modern card-based layout with better visual hierarchy
-    2. Improved responsive design with proper column layouts
-    3. Enhanced styling with custom CSS and better spacing
-    4. Status indicators and loading states
-    5. Better accessibility and user experience
-    """
-    
-    # Custom CSS for enhanced styling
-    custom_css = """
-    .main-container {
-        max-width: 1400px;
-        margin: 0 auto;
-        padding: 20px;
-    }
-    
-    .header-section {
-        color: white;
-        padding: 30px;
-        border-radius: 15px;
-        margin-bottom: 10px;
-        text-align: left;
-        box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-    }
-    
-    .header-content {
-        text-align: left !important;
-    }
-    
-    .header-content h1 {
-        text-align: left !important;
-        margin: 0 0 10px 0;
-        padding-left: 0 !important;
-    }
-    
-    .header-content p {
-        text-align: left !important;
-        margin: 0;
-        padding-left: 0 !important;
-    }
-    
-    .header-content * {
-        text-align: left !important;
-    }
-    
-    .section-card {
-        background: white;
-        border-radius: 12px;
-        padding: 20px;
-        margin-bottom: 20px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.08);
-        border: 1px solid #e1e5e9;
-    }
-    
-    .email-list-container {
-        min-height: 400px;
-    }
-    
-    .details-panel {
-        background: #f8f9fa;
-        border-radius: 8px;
-        padding: 20px;
-        min-height: 300px;
-        border-left: 4px solid #667eea;
-    }
-    
-    .ai-response-panel {
-        background: #f0f8ff;
-        border-radius: 8px;
-        padding: 20px;
-        min-height: 300px;
-        border-left: 4px solid #28a745;
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        margin: 20px 0;
-    }
-    
-    .status-indicator {
-        display: inline-block;
-        padding: 4px 8px;
-        border-radius: 12px;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    .status-pending {
-        background-color: #fff3cd;
-        color: #856404;
-    }
-    
-    .status-processed {
-        background-color: #d4edda;
-        color: #155724;
-    }
-    
-    .section-title {
-        color: #2c3e50;
-        font-weight: 600;
-        margin-bottom: 15px;
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-    
-    .stats-container {
-        display: flex;
-        justify-content: space-around;
-        margin: 20px 0;
-        flex-wrap: wrap;
-    }
-    
-    .stat-item {
-        text-align: center;
-        padding: 15px;
-        background: rgba(255,255,255,0.2);
-        border-radius: 8px;
-        min-width: 120px;
-        margin: 5px;
-    }
-    
-    .stat-number {
-        font-size: 24px;
-        font-weight: bold;
-        display: block;
-    }
-    
-    .stat-label {
-        font-size: 14px;
-        opacity: 0.9;
-    }
+    Key Features:
+    1. Left sidebar with model selection and email details
+    2. Email list display with proper column layout
+    3. AI response generation functionality
+    4. Responsive design with proper component organization
     """
     
     with gr.Blocks(
@@ -252,134 +159,125 @@ def create_interface():
         theme=gr.themes.Soft(
             primary_hue="blue",
             secondary_hue="gray",
-            neutral_hue="slate",
-            font=gr.themes.GoogleFont("Inter")
-        ),
-        css=custom_css
+            neutral_hue="slate"
+        )
     ) as interface:
         
-        # Enhanced Header Section
-        with gr.Column(elem_classes="main-container"):
-            with gr.Column(elem_classes="header-section"):
+        # Header Section
+        with gr.Column():
+            with gr.Column():
                 gr.Markdown(
                     """
                     # 📧 LCSC Electronics Customer Service System
                     基于Gradio + Strands Agent SDK构建的智能邮件处理系统
-                    """,
-                    elem_classes="header-content"
-                )
-                
-
-            
-            # Main Content Layout - Email List at Top
-            with gr.Column(elem_classes="section-card"):
-                gr.Markdown(
                     """
-                    <div class="section-title">
-                        📋 Customer Email Inbox
-                    </div>
-                    """,
-                    elem_classes="section-header"
                 )
-                
-                # Email list with enhanced styling
-                email_list = gr.Dataframe(
-                    headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📊 Status", "📝 Subject"],
-                    value=email_functions['get_emails_for_display'](),
-                    interactive=True,
-                    wrap=True,
-                    elem_id="email_list",
-                    elem_classes="email-list-container",
-                    column_widths=["20%", "15%", "15%", "10%", "40%"]
-                )
-                
-                # Enhanced Action Buttons
-                with gr.Row(elem_classes="action-buttons"):
-                    refresh_btn = gr.Button(
-                        "🔄 Refresh Emails", 
-                        variant="secondary", 
-                        size="lg",
-                        elem_classes="refresh-button"
-                    )
-                    ai_btn = gr.Button(
-                        "🤖 Generate AI Response", 
-                        variant="primary", 
-                        size="lg",
-                        elem_classes="ai-button"
-                    )
             
-            # Details and Response Panels Below - Side by Side
+            # Main layout with sidebar
             with gr.Row():
-                # Email Details Section
-                with gr.Column(scale=1, elem_classes="section-card"):
-                    gr.Markdown(
-                        """
-                        <div class="section-title">
-                            📄 Email Details
-                        </div>
-                        """,
-                        elem_classes="section-header"
-                    )
+                # Left Sidebar
+                with gr.Column(scale=1, visible=True) as sidebar_left:
+                    # Model Selection Section
+                    with gr.Column():
+                        gr.Markdown("**🤖 Configuration**")
+                        
+                        model_dropdown = gr.Dropdown(
+                            choices=MODEL_OPTIONS,
+                            label="Select Model",
+                            value="claude-3-7-sonnet",
+                            interactive=True
+                        )
                     
-                    email_details = gr.Markdown(
-                        """
-                        <div class="details-panel">
-                            <div style="text-align: center; padding: 40px; color: #6c757d;">
-                                <h3>📬 No Email Selected</h3>
-                                <p>Click on an email from the list to view its complete details here.</p>
-                                <p><em>Details will include sender information, timestamp, and full content.</em></p>
+                    # Email Details Section
+                    with gr.Column():
+                        gr.Markdown("**📄 Email Details**")
+                        
+                        email_details = gr.Markdown(
+                            """
+                            <div>
+                                <div style="text-align: center; padding: 30px; color: #6c757d;">
+                                    <h4>📬 No Email Selected</h4>
+                                    <p>Click on an email from the list to view its complete details here.</p>
+                                </div>
                             </div>
-                        </div>
-                        """,
-                        elem_classes="email-details-display"
-                    )
+                            """
+                        )
                 
-                # AI Response Section
-                with gr.Column(scale=1, elem_classes="section-card"):
-                    gr.Markdown(
-                        """
-                        <div class="section-title">
-                            🤖 AI-Generated Response
-                        </div>
-                        """,
-                        elem_classes="section-header"
-                    )
+                # Main Content Area
+                with gr.Column(scale=2):
+                    # Email List Section
+                    with gr.Column():
+                        # Title and Toggle Button
+                        with gr.Row():                      
+                            gr.Markdown("**📋 Customer Email Inbox**")
+                            toggle_btn = gr.Button(
+                                "◀ Hide Sidebar", 
+                                variant="secondary", 
+                                size="sm"
+                            )
+                        
+                        # Email list
+                        email_list = gr.Dataframe(
+                            headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📊 Status", "📝 Subject"],
+                            value=email_functions['get_emails_for_display'](),
+                            interactive=True,
+                            wrap=True,
+                            column_widths=["20%", "15%", "15%", "10%", "40%"]
+                        )
+                        
+                        # Action Buttons
+                        with gr.Row():
+                            refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
+                            ai_btn = gr.Button("🤖 Generate AI Response", variant="primary")
                     
-                    ai_response = gr.Markdown(
-                        """
-                        <div class="ai-response-panel">
-                            <div style="text-align: center; padding: 40px; color: #6c757d;">
-                                <h3>🧠 AI Assistant Ready</h3>
-                                <p>Select an email and click <strong>'Generate AI Response'</strong> to create an intelligent customer service reply.</p>
-                                <p><em>Powered by Claude AI with business context awareness.</em></p>
+                    # AI Response Section
+                    with gr.Column():
+                        gr.Markdown("**🤖 AI-Generated Response**")
+                        
+                        ai_response = gr.Markdown(
+                            """
+                            <div>
+                                <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                    <h3>🧠 AI Assistant Ready</h3>
+                                    <p>Select an email and click <strong>'Generate AI Response'</strong> to create an intelligent customer service reply.</p>
+                                    <p><em>Powered by Claude AI with business context awareness.</em></p>
+                                </div>
                             </div>
-                        </div>
-                        """,
-                        elem_classes="ai-response-display"
-                    )
+                            """
+                        )
             
             # Footer Information
-            with gr.Row():
-                with gr.Column(elem_classes="section-card"):
-                    gr.Markdown(
-                        """
-                        ### 💡 Quick Tips
-                        - **Select Email**: Click any row in the email list to view details
-                        - **AI Processing**: Use the AI Copilot for intelligent response generation
-                        - **Refresh**: Click refresh to load new emails from the directory
-                        - **Status Tracking**: Monitor email processing status in real-time
-                        """,
-                        elem_classes="footer-info"
-                    )
+            gr.Markdown(
+                "**💡 Tips**: Select Model → Click Email → Generate AI Response → Refresh for new emails"
+            )
         
         # State management using Gradio State (functional approach)
         selected_email_idx = gr.State(-1)
+        sidebar_state = gr.State(True)
         
         # Event handlers using functional approach with loading states
         refresh_btn.click(
             fn=refresh_emails,
             outputs=email_list,
             show_progress=True
+        )
+        
+        # Model change handler
+        model_dropdown.change(
+            fn=change_model,
+            inputs=model_dropdown,
+            show_progress=True
+        )
+        
+        # Sidebar toggle handler - simplified
+        toggle_btn.click(
+            fn=toggle_sidebar,
+            inputs=sidebar_state,
+            outputs=[sidebar_left, sidebar_state]
+        ).then(
+            fn=lambda visible: "▶ Show Sidebar" if not visible else "◀ Hide Sidebar",
+            inputs=sidebar_state,
+            outputs=toggle_btn
         )
         
         # Email selection handler using functional composition
