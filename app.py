@@ -398,7 +398,7 @@ def create_interface():
             # Main layout with sidebar
             with gr.Row():
                 # Left Sidebar
-                with gr.Column(scale=1, visible=True) as sidebar_left:
+                with gr.Column(scale=1, visible=False) as sidebar_left:
                     # Model Selection Group
                     with gr.Group():
                         gr.Markdown("### 🤖 AI Configuration")
@@ -460,11 +460,11 @@ def create_interface():
                 with gr.Column(scale=2):
                     # Email List Group
                     with gr.Group():
-                        gr.Markdown("### 📋 Customer Email Inbox")
+                        gr.Markdown("### 📋 Customer Email List")
                         # Title and Toggle Button
                         with gr.Row():                      
                             toggle_btn = gr.Button(
-                                "◀ Hide Configuration", 
+                                "▶ Show Configuration", 
                                 variant="secondary", 
                                 size="sm"
                             )
@@ -528,7 +528,7 @@ def create_interface():
         
         # State management using Gradio State (functional approach)
         selected_email_idx = gr.State(-1)
-        sidebar_state = gr.State(True)
+        sidebar_state = gr.State(False)
         
         # Event handlers using functional approach with loading states
         refresh_btn.click(
