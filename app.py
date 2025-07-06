@@ -320,11 +320,7 @@ def create_interface():
     
     with gr.Blocks(
         title="LCSC Electronics - Email Customer Service System",
-        theme=gr.themes.Soft(
-            primary_hue="blue",
-            secondary_hue="gray",
-            neutral_hue="slate"
-        )
+        theme=gr.themes.Soft()
     ) as interface:
         
         # Header Section
@@ -341,10 +337,9 @@ def create_interface():
             with gr.Row():
                 # Left Sidebar
                 with gr.Column(scale=1, visible=True) as sidebar_left:
-                    # Model Selection Section
-                    with gr.Column():
-                        gr.Markdown("**🤖 Configuration**")
-                        
+                    # Model Selection Group
+                    with gr.Group():
+                        gr.Markdown("### 🤖 AI Configuration")
                         model_dropdown = gr.Dropdown(
                             choices=MODEL_OPTIONS,
                             label="Select Model",
@@ -352,10 +347,9 @@ def create_interface():
                             interactive=True
                         )
                     
-                    # Email Details Section
-                    with gr.Column():
-                        gr.Markdown("**📄 Email Details**")
-                        
+                    # Email Details Group
+                    with gr.Group():
+                        gr.Markdown("### 📄 Email Details")
                         email_details = gr.Markdown(
                             """
                             <div>
@@ -369,11 +363,11 @@ def create_interface():
                 
                 # Main Content Area
                 with gr.Column(scale=2):
-                    # Email List Section
-                    with gr.Column():
+                    # Email List Group
+                    with gr.Group():
+                        gr.Markdown("### 📋 Customer Email Inbox")
                         # Title and Toggle Button
                         with gr.Row():                      
-                            gr.Markdown("**📋 Customer Email Inbox**")
                             toggle_btn = gr.Button(
                                 "◀ Hide Configuration", 
                                 variant="secondary", 
@@ -394,10 +388,9 @@ def create_interface():
                             refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
                             ai_btn = gr.Button("🤖 AI Copilot", variant="primary")
                     
-                    # AI Response Section with Tabs
-                    with gr.Column():
-                        gr.Markdown("**🤖 AI Agent Response & Agent Loop**")
-                        
+                    # AI Response Group with Tabs
+                    with gr.Group():
+                        gr.Markdown("### 🤖 AI Agent Response & Processing")
                         with gr.Tabs():
                             # AI Response Tab
                             with gr.TabItem("💬 Final Response"):

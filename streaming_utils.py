@@ -78,8 +78,8 @@ def format_streaming_event(event: Dict[str, Any]) -> str:
         return f"⏹️ **[{timestamp}] STOPPED:** Processing stopped - {reason}\n\n"
     
     # Default case for unhandled events
-    if event:
-        return f"ℹ️ **[{timestamp}] EVENT:** {str(event)}\n\n"
+    # if event:
+    #     return f"ℹ️ **[{timestamp}] EVENT:** {str(event)}\n\n"
     
     return ""
 
