@@ -1,9 +1,18 @@
 # LCSC Electronics Email Customer Service System - Usage Guide
 
-## 🆕 New Features - Real-time AI Agent Loop
+## 🆕 New Features - Native Reasoning + Real-time AI Agent Loop
+
+### Native Thinking Capabilities
+The system now includes **native reasoning** powered by Claude's built-in thinking process, providing:
+
+- 🧠 **Native reasoning**: AI's internal thought process using Claude's native thinking
+- 💭 **Configurable thinking budget**: Adjustable token allocation for reasoning (8K-32K tokens)
+- 🎛️ **Real-time configuration**: Change reasoning settings without restarting
+- 📊 **Token management**: Intelligent max token allocation (1.5x thinking budget)
+- 🔧 **Enhanced decision making**: More thorough analysis and better responses
 
 ### Streaming AI Response Generation
-The system now includes **real-time streaming** of the AI agent's thinking process, powered by Strands Agent SDK's async iterators. You can now see:
+The system includes **real-time streaming** of the AI agent's thinking process, powered by Strands Agent SDK's async iterators:
 
 - 🧠 **Real-time reasoning**: Watch the AI think through problems step by step
 - 🔧 **Tool usage**: See which business tools the AI is calling and why
@@ -11,6 +20,7 @@ The system now includes **real-time streaming** of the AI agent's thinking proce
 - 💭 **Decision making**: Understand how the AI reaches its conclusions
 
 ### Enhanced UI Features
+- **Reasoning Configuration Panel**: Real-time adjustment of thinking parameters
 - **Tabbed Interface**: Separate tabs for final response and thinking process
 - **Live Updates**: Real-time streaming of AI analysis
 - **Event Categorization**: Different types of events are clearly marked
@@ -51,7 +61,16 @@ pip install -r requirements.txt
 
 ## 📧 Interface Features
 
-### 1. Email List Display
+### 1. AI Configuration Panel
+- **Location:** Left sidebar, top section
+- **Model Selection:** Choose between available Claude models
+- **Reasoning Configuration:** 
+  - **Enable Native Thinking:** Toggle AI's internal reasoning process
+  - **Thinking Budget:** Adjust token allocation for reasoning (8K-32K tokens)
+  - **Max Response Tokens:** Set maximum tokens for complete response (16K-48K tokens)
+  - **Apply Configuration:** Real-time updates without restart
+
+### 2. Email List Display
 - **Location:** Left side of the interface
 - **Content:** Shows all customer emails with the following columns:
   - **Sender:** Customer name and email

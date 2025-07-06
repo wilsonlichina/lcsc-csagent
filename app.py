@@ -30,11 +30,26 @@ MODEL_OPTIONS = [
     ("Claude 3.7 Sonnet", "claude-3-7-sonnet")
 ]
 
+# Default agent configuration with reasoning capabilities
+DEFAULT_AGENT_CONFIG = {
+    "agent": {
+        "enable_native_thinking": True,
+        "thinking_budget": 16000,
+        "max_parallel_tools": 4,
+        "record_direct_tool_call": True
+    },
+    "model": {
+        "region": "us-west-2",
+        "max_tokens": 24000
+    }
+}
 
-# Global state management using functional approach
+
+# Global state management using functional approach with reasoning support
 email_state, email_functions = create_email_management_system(
     emails_dir="./emails",
-    model_name="claude-3-7-sonnet"
+    model_name="claude-3-7-sonnet",
+    config=DEFAULT_AGENT_CONFIG
 )
 
 
@@ -142,19 +157,66 @@ def refresh_emails():
     return format_emails_for_display(email_functions['get_emails']())
 
 
+def update_reasoning_config(enable_thinking: bool, thinking_budget: int, max_tokens: int):
+    """
+    Update reasoning configuration and reinitialize the system
+    
+    Args:
+        enable_thinking: Whether to enable native thinking
+        thinking_budget: Token budget for thinking process
+        max_tokens: Maximum tokens for model response
+    """
+    global email_state, email_functions, DEFAULT_AGENT_CONFIG
+    
+    # Update configuration
+    DEFAULT_AGENT_CONFIG["agent"]["enable_native_thinking"] = enable_thinking
+    DEFAULT_AGENT_CONFIG["agent"]["thinking_budget"] = thinking_budget
+    DEFAULT_AGENT_CONFIG["model"]["max_tokens"] = max_tokens
+    
+    # Get current model from state or use default
+    current_model = "claude-3-7-sonnet"  # Default fallback
+    
+    # Reinitialize system with new config
+    email_state, email_functions = create_email_management_system(
+        emails_dir="./emails",
+        model_name=current_model,
+        config=DEFAULT_AGENT_CONFIG
+    )
+    
+    return f"✅ Reasoning configuration updated: Thinking={'Enabled' if enable_thinking else 'Disabled'}, Budget={thinking_budget}, Max Tokens={max_tokens}"
+
+
 def change_model(model_name: str):
     """
-    Change the AI model and reinitialize the email management system
+    Change the AI model and reinitialize the email management system with reasoning
     
     Args:
         model_name: The model name to switch to
     """
     global email_state, email_functions
     
-    # Create new email management system with the selected model
+    # Create new email management system with the selected model and reasoning config
     email_state, email_functions = create_email_management_system(
         emails_dir="./emails",
-        model_name=model_name
+        model_name=model_name,
+        config=DEFAULT_AGENT_CONFIG
+    )
+
+
+def change_model(model_name: str):
+    """
+    Change the AI model and reinitialize the email management system with reasoning
+    
+    Args:
+        model_name: The model name to switch to
+    """
+    global email_state, email_functions
+    
+    # Create new email management system with the selected model and reasoning config
+    email_state, email_functions = create_email_management_system(
+        emails_dir="./emails",
+        model_name=model_name,
+        config=DEFAULT_AGENT_CONFIG
     )
 
 
@@ -347,6 +409,39 @@ def create_interface():
                             interactive=True
                         )
                     
+                    # Reasoning Configuration Group
+                    with gr.Group():
+                        gr.Markdown("### 🧠 Reasoning Configuration")
+                        enable_thinking = gr.Checkbox(
+                            label="Enable Native Thinking",
+                            value=DEFAULT_AGENT_CONFIG["agent"]["enable_native_thinking"],
+                            info="Enable AI's internal reasoning process"
+                        )
+                        thinking_budget = gr.Slider(
+                            minimum=8000,
+                            maximum=32000,
+                            step=1000,
+                            value=DEFAULT_AGENT_CONFIG["agent"]["thinking_budget"],
+                            label="Thinking Budget (tokens)",
+                            info="Token budget for reasoning process"
+                        )
+                        max_tokens = gr.Slider(
+                            minimum=16000,
+                            maximum=48000,
+                            step=1000,
+                            value=DEFAULT_AGENT_CONFIG["model"]["max_tokens"],
+                            label="Max Response Tokens",
+                            info="Maximum tokens for complete response"
+                        )
+                        apply_reasoning_btn = gr.Button(
+                            "🔧 Apply Reasoning Config",
+                            variant="secondary",
+                            size="sm"
+                        )
+                        reasoning_status = gr.Markdown(
+                            f"**Status:** ✅ Native thinking enabled with {DEFAULT_AGENT_CONFIG['agent']['thinking_budget']} token budget"
+                        )
+                    
                     # Email Details Group
                     with gr.Group():
                         gr.Markdown("### 📄 Email Details")
@@ -428,7 +523,7 @@ def create_interface():
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Select Model → Click Email → AI Copilot → Watch real-time thinking process → Refresh for new emails"
+                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Copilot → Watch real-time thinking process → Refresh for new emails"
             )
         
         # State management using Gradio State (functional approach)
@@ -446,6 +541,14 @@ def create_interface():
         model_dropdown.change(
             fn=change_model,
             inputs=model_dropdown,
+            show_progress=True
+        )
+        
+        # Reasoning configuration handler
+        apply_reasoning_btn.click(
+            fn=update_reasoning_config,
+            inputs=[enable_thinking, thinking_budget, max_tokens],
+            outputs=reasoning_status,
             show_progress=True
         )
         
@@ -480,7 +583,7 @@ def create_interface():
 
 def get_system_info():
     """
-    Get system information using functional approach
+    Get system information using functional approach with reasoning capabilities
     
     Returns:
         Dict: Information about the current email management system
@@ -493,17 +596,20 @@ def get_system_info():
         'immutable_data': True,
         'pure_functions': True,
         'streaming_enabled': True,
-        'async_support': True
+        'async_support': True,
+        'native_thinking_enabled': DEFAULT_AGENT_CONFIG["agent"]["enable_native_thinking"],
+        'thinking_budget': DEFAULT_AGENT_CONFIG["agent"]["thinking_budget"],
+        'max_tokens': DEFAULT_AGENT_CONFIG["model"]["max_tokens"]
     }
 
 
 if __name__ == "__main__":
-    # Enhanced system information display
+    # Enhanced system information display with reasoning capabilities
     system_info = get_system_info()
     
-    print("\n" + "="*60)
-    print("🚀 LCSC EMAIL CUSTOMER SERVICE SYSTEM (STREAMING ENABLED)")
-    print("="*60)
+    print("\n" + "="*70)
+    print("🚀 LCSC EMAIL CUSTOMER SERVICE SYSTEM (REASONING + STREAMING ENABLED)")
+    print("="*70)
     print(f"📧 Email Count:        {system_info['email_count']} emails loaded")
     print(f"📁 Emails Directory:   {system_info['emails_directory']}")
     print(f"🤖 AI Agent Status:    {'✅ Available' if system_info['ai_agent_available'] else '❌ Not Available'}")
@@ -512,12 +618,16 @@ if __name__ == "__main__":
     print(f"⚡ Function Style:     {'✅ Pure Functions' if system_info['pure_functions'] else '❌ Impure Functions'}")
     print(f"🌊 Streaming Support:  {'✅ Enabled' if system_info['streaming_enabled'] else '❌ Disabled'}")
     print(f"🔄 Async Support:      {'✅ Enabled' if system_info['async_support'] else '❌ Disabled'}")
-    print("="*60)
+    print(f"🧠 Native Thinking:    {'✅ Enabled' if system_info['native_thinking_enabled'] else '❌ Disabled'}")
+    print(f"💭 Thinking Budget:    {system_info['thinking_budget']} tokens")
+    print(f"📝 Max Response:       {system_info['max_tokens']} tokens")
+    print("="*70)
     print("🌐 Starting web interface...")
     print("📱 Access URL: http://localhost:7860")
     print("🔧 Debug Mode: Enabled")
     print("🧠 Real-time AI Agent Loop: Available")
-    print("="*60)
+    print("💡 Native Reasoning: Configurable via UI")
+    print("="*70)
     
     # Create and launch the enhanced interface
     interface = create_interface()

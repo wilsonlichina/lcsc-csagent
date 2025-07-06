@@ -197,19 +197,20 @@ def load_emails_from_directory(emails_dir: str) -> List[Dict]:
 
 
 # AI agent functions
-def initialize_ai_agent(model_name: str = "claude-3-7-sonnet") -> Optional[object]:
+def initialize_ai_agent(model_name: str = "claude-3-7-sonnet", config: dict = None) -> Optional[object]:
     """
-    Initialize AI agent for email processing
+    Initialize AI agent for email processing with reasoning capabilities
     
     Args:
         model_name: Name of the AI model to use
+        config: Optional configuration dictionary with agent and model settings
         
     Returns:
         Optional[object]: Initialized agent or None if failed
     """
     try:
-        agent = create_agent(model_name=model_name)
-        print("✅ AI Agent initialized successfully")
+        agent = create_agent(model_name=model_name, config=config)
+        print("✅ AI Agent initialized successfully with reasoning capabilities")
         return agent
     except Exception as e:
         print(f"❌ Failed to initialize AI Agent: {e}")
@@ -259,18 +260,20 @@ def process_email_with_ai_streaming(agent: object, email_content: str, customer_
 
 # State management functions
 def create_initial_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR, 
-                                     model_name: str = "claude-3-7-sonnet") -> Dict:
+                                     model_name: str = "claude-3-7-sonnet",
+                                     config: dict = None) -> Dict:
     """
-    Create initial email manager state
+    Create initial email manager state with reasoning capabilities
     
     Args:
         emails_dir: Directory containing email files
         model_name: AI model name
+        config: Optional configuration dictionary with agent and model settings
         
     Returns:
-        Dict: Initial state with loaded emails and agent
+        Dict: Initial state with loaded emails and agent with reasoning
     """
-    agent = initialize_ai_agent(model_name)
+    agent = initialize_ai_agent(model_name, config)
     emails = load_emails_from_directory(emails_dir)
     
     return create_email_manager_state(
@@ -366,20 +369,24 @@ def extract_customer_email_from_content(content: str) -> Optional[str]:
 
 # Main factory function
 def create_email_management_system(emails_dir: str = DEFAULT_EMAILS_DIR, 
-                                 model_name: str = "claude-3-7-sonnet") -> Tuple[Dict, Dict]:
+                                 model_name: str = "claude-3-7-sonnet",
+                                 config: dict = None) -> Tuple[Dict, Dict]:
     """
-    Factory function to create complete email management system
+    Factory function to create complete email management system with reasoning capabilities
     
     Args:
         emails_dir: Directory containing email files
         model_name: AI model name
+        config: Optional configuration dictionary with agent and model settings
         
     Returns:
         Tuple[Dict, Dict]: State dictionary and bound functions dictionary
     """
-    state = create_initial_email_manager_state(emails_dir, model_name)
+    state = create_initial_email_manager_state(emails_dir, model_name, config)
     functions = create_email_processor(state)
     
+    reasoning_status = "✅ Enabled" if config and config.get("agent", {}).get("enable_native_thinking", True) else "❌ Disabled"
     print(f"📧 Email Management System initialized with {len(state['emails_cache'])} emails")
+    print(f"🧠 Native reasoning: {reasoning_status}")
     
     return state, functions

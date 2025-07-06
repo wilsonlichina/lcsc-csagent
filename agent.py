@@ -1,6 +1,6 @@
 """
 LCSC Email Customer Service AI Agent - Functional Style
-Intelligent agent for handling customer service inquiries with streaming support
+Intelligent agent for handling customer service inquiries with streaming support and native thinking
 """
 
 import asyncio
@@ -8,6 +8,7 @@ from strands import Agent
 from strands.models import BedrockModel
 from strands_tools import current_time
 from business_tools import BUSINESS_TOOLS
+from botocore.config import Config
 
 
 # Constants definition
@@ -53,17 +54,35 @@ SYSTEM_PROMPT = """You are a professional intelligent customer service assistant
 Please always maintain professional, accurate, and efficient service standards."""
 
 
+# Agent Configuration
+DEFAULT_AGENT_CONFIG = {
+    "enable_native_thinking": True,
+    "thinking_budget": 16000,
+    "max_parallel_tools": 4,
+    "record_direct_tool_call": True
+}
 
-def create_agent(model_name: str = "claude-3-7-sonnet") -> Agent:
+DEFAULT_MODEL_CONFIG = {
+    "region": "us-west-2",
+    "max_tokens": 24000  # 1.5x thinking budget by default
+}
+
+
+def create_agent(model_name: str = "claude-3-7-sonnet", config: dict = None) -> Agent:
     """
-    Create LCSC agent instance
+    Create LCSC agent instance with native thinking capabilities
     
     Args:
         model_name: Model name (claude-3-5-sonnet, claude-3-7-sonnet)
+        config: Optional configuration dictionary with agent and model settings
         
     Returns:
-        Agent: Configured agent instance
+        Agent: Configured agent instance with reasoning capabilities
     """
+    # Merge with default configurations
+    agent_config = {**DEFAULT_AGENT_CONFIG, **(config.get("agent", {}) if config else {})}
+    model_config = {**DEFAULT_MODEL_CONFIG, **(config.get("model", {}) if config else {})}
+    
     # Get model ID
     model_id = MODEL_MAPPING.get(model_name, MODEL_MAPPING["claude-3-7-sonnet"])
     if model_name not in MODEL_MAPPING:
@@ -71,17 +90,42 @@ def create_agent(model_name: str = "claude-3-7-sonnet") -> Agent:
     
     print(f"🔧 Model mapping: {model_name} -> {model_id}")
     
-    # Create Bedrock model
+    # Prepare additional request fields for native thinking
+    additional_request_fields = {}
+    if agent_config.get("enable_native_thinking", False):
+        thinking_budget = agent_config.get("thinking_budget", 16000)
+        max_tokens = model_config.get("max_tokens", int(thinking_budget * 1.5))
+        additional_request_fields = {
+            "max_tokens": max_tokens,
+            "thinking": {
+                "type": "enabled",
+                "budget_tokens": thinking_budget
+            }
+        }
+        print(f"🧠 Native thinking enabled: budget={thinking_budget}, max_tokens={max_tokens}")
+    
+    # Create Bedrock model with enhanced configuration
     bedrock_model = BedrockModel(
         model_id=model_id,
-        region_name='us-west-2',
+        region=model_config.get("region", "us-west-2"),
+        boto_client_config=Config(
+            retries={
+                "max_attempts": 3,
+                "mode": "standard",
+            },
+            read_timeout=600,
+            connect_timeout=30,
+        ),
+        additional_request_fields=additional_request_fields
     )
     
-    # Create Agent without callback handler for streaming support
+    # Create Agent with enhanced configuration
     agent = Agent(
         model=bedrock_model,
         tools=BUSINESS_TOOLS + [current_time],
         system_prompt=SYSTEM_PROMPT,
+        max_parallel_tools=agent_config.get("max_parallel_tools", 4),
+        record_direct_tool_call=agent_config.get("record_direct_tool_call", True),
         callback_handler=None  # Disable callback handler for streaming
     )
     
@@ -89,6 +133,8 @@ def create_agent(model_name: str = "claude-3-7-sonnet") -> Agent:
     print(f"   Model: {model_name}")
     print(f"   Model ID: {model_id}")
     print(f"   Number of tools: {len(BUSINESS_TOOLS) + 1}")
+    print(f"   Native thinking: {'✅ Enabled' if agent_config.get('enable_native_thinking') else '❌ Disabled'}")
+    print(f"   Max parallel tools: {agent_config.get('max_parallel_tools', 4)}")
     print(f"   Streaming: Enabled")
     
     return agent
