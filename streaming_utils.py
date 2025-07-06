@@ -8,12 +8,13 @@ from typing import Dict, Any, List
 from datetime import datetime
 
 
-def format_streaming_event(event: Dict[str, Any]) -> str:
+def format_streaming_event(event: Dict[str, Any], collector=None) -> str:
     """
     Format a streaming event for display in the UI
     
     Args:
         event: Raw streaming event from Strands Agent
+        collector: Optional StreamingEventCollector for buffering
         
     Returns:
         str: Formatted event string for UI display
@@ -55,10 +56,23 @@ def format_streaming_event(event: Dict[str, Any]) -> str:
         
         return f"\n🔧 **[{timestamp}] TOOL CALL:** {tool_name}{formatted_input}\n**Tool ID:** {tool_use_id[:8]}...\n\n"
     
-    # Reasoning events
+    # Reasoning events - use buffering if collector is provided
     if event.get("reasoning") and "reasoningText" in event:
         reasoning_text = event["reasoningText"]
-        return f"🧠 **[{timestamp}] THINKING:** {reasoning_text}\n\n"
+        
+        if collector:
+            # Use buffering for smoother display
+            buffered_text = collector.add_thinking_text(reasoning_text)
+            if buffered_text:
+                return f"🧠 **[{timestamp}] THINKING:** {buffered_text}\n\n"
+            else:
+                return ""  # Text is being buffered
+        else:
+            # Fallback to immediate display - but only if it's substantial
+            if len(reasoning_text.strip()) >= 10:
+                return f"🧠 **[{timestamp}] THINKING:** {reasoning_text}\n\n"
+            else:
+                return ""
     
     # Lifecycle events
     if event.get("init_event_loop"):
@@ -206,6 +220,8 @@ class StreamingEventCollector:
         self.events: List[Dict[str, Any]] = []
         self.start_time = time.time()
         self.is_complete = False
+        self.thinking_buffer = ""  # Buffer for thinking text chunks
+        self.last_thinking_flush = time.time()
     
     def add_event(self, event: Dict[str, Any]):
         """Add an event to the collection"""
@@ -214,6 +230,65 @@ class StreamingEventCollector:
             "_timestamp": time.time(),
             "_relative_time": time.time() - self.start_time
         })
+    
+    def should_flush_thinking_buffer(self) -> bool:
+        """Determine if thinking buffer should be flushed"""
+        current_time = time.time()
+        buffer_length = len(self.thinking_buffer.strip())
+        
+        # Flush conditions (in order of priority):
+        # 1. Buffer ends with sentence-ending punctuation
+        if self.thinking_buffer.rstrip().endswith(('.', '!', '?')):
+            return True
+        
+        # 2. Buffer is getting quite long (avoid memory issues)
+        if buffer_length >= 100:
+            return True
+            
+        # 3. Buffer has reasonable length AND ends with word boundary
+        if (buffer_length >= 30 and 
+            self.thinking_buffer.endswith((' ', ',', ';', ':', '\n'))):
+            return True
+        
+        # 4. Timeout - force flush after reasonable time
+        if current_time - self.last_thinking_flush > 2.0 and buffer_length > 0:
+            return True
+            
+        # 5. Buffer has multiple complete words (at least 5)
+        if len(self.thinking_buffer.split()) >= 5:
+            return True
+        
+        return False
+    
+    def add_thinking_text(self, text: str) -> str:
+        """Add thinking text to buffer and return when ready to display"""
+        self.thinking_buffer += text
+        
+        # Check if we should flush based on current conditions
+        if self.should_flush_thinking_buffer():
+            # Only flush if we're at a word boundary or it's a timeout/length-based flush
+            at_word_boundary = (text.endswith((' ', '.', '!', '?', '\n', ',', ';', ':', ')')) or 
+                              self.thinking_buffer.rstrip().endswith(('.', '!', '?')))
+            
+            # Force flush for timeout or length conditions even if not at word boundary
+            force_flush = (len(self.thinking_buffer.strip()) >= 100 or 
+                          time.time() - self.last_thinking_flush > 2.0)
+            
+            if at_word_boundary or force_flush:
+                result = self.thinking_buffer.strip()
+                self.thinking_buffer = ""
+                self.last_thinking_flush = time.time()
+                return result
+        
+        return ""
+    
+    def force_flush_thinking_buffer(self) -> str:
+        """Force flush any remaining thinking buffer"""
+        if self.thinking_buffer.strip():
+            result = self.thinking_buffer.strip()
+            self.thinking_buffer = ""
+            return result
+        return ""
     
     def mark_complete(self):
         """Mark the streaming session as complete"""

@@ -312,8 +312,10 @@ def handle_ai_copilot_streaming(selected_idx: int):
             # Add event to collector
             collector.add_event(event)
             
-            # Format and update thinking process display
-            thinking_display += format_streaming_event(event)
+            # Format and update thinking process display with buffering
+            formatted_event = format_streaming_event(event, collector)
+            if formatted_event:  # Only add non-empty formatted events
+                thinking_display += formatted_event
             
             # Update response display with final response if available
             final_response = collector.get_final_response()
@@ -328,6 +330,12 @@ def handle_ai_copilot_streaming(selected_idx: int):
         
         # Mark as complete and final update
         collector.mark_complete()
+        
+        # Flush any remaining thinking buffer
+        remaining_thinking = collector.force_flush_thinking_buffer()
+        if remaining_thinking:
+            timestamp = datetime.now().strftime("%H:%M:%S")
+            thinking_display += f"🧠 **[{timestamp}] THINKING:** {remaining_thinking}\n\n"
         
         # Final response formatting
         final_response = collector.get_final_response()
