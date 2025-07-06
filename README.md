@@ -1,6 +1,6 @@
 # LCSC Electronics Email Customer Service System - Usage Guide
 
-## 🆕 New Features - Real-time AI Thinking Process
+## 🆕 New Features - Real-time AI Agent Loop
 
 ### Streaming AI Response Generation
 The system now includes **real-time streaming** of the AI agent's thinking process, powered by Strands Agent SDK's async iterators. You can now see:
@@ -84,7 +84,7 @@ pip install -r requirements.txt
 ### Generate AI Response with Streaming
 1. **Select an email** by clicking on it in the email list
 2. **Click the "🤖 AI Copilot" button**
-3. **Watch the real-time thinking process** in the "🧠 Thinking Process" tab
+3. **Watch the real-time thinking process** in the "🧠 Agent Loop" tab
 4. **View the final response** in the "💬 Final Response" tab
 5. **Monitor AI reasoning** including:
    - Tool usage and business logic execution

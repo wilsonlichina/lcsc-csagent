@@ -59,8 +59,8 @@ def format_email_for_display(email: Dict) -> List[str]:
         email['sender'],
         email['recipient'],
         email['send_time'],
-        email['status'],
-        subject_display
+        subject_display,
+        email['status']
     ]
 
 
@@ -339,7 +339,7 @@ def create_interface():
                 gr.Markdown(
                     """
                     # 📧 LCSC Electronics Customer Service System
-                    基于Gradio + Strands Agent SDK构建的智能邮件处理系统 (with Real-time AI Thinking Process)
+                    基于Gradio + Strands Agent SDK构建的智能邮件处理系统 
                     """
                 )
             
@@ -381,18 +381,18 @@ def create_interface():
                         with gr.Row():                      
                             gr.Markdown("**📋 Customer Email Inbox**")
                             toggle_btn = gr.Button(
-                                "◀ Hide Sidebar", 
+                                "◀ Hide Configuration", 
                                 variant="secondary", 
                                 size="sm"
                             )
                         
                         # Email list
                         email_list = gr.Dataframe(
-                            headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📊 Status", "📝 Subject"],
+                            headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📝 Subject","📊 Status"],
                             value=get_initial_email_display(),
                             interactive=True,
                             wrap=True,
-                            column_widths=["20%", "15%", "15%", "10%", "40%"]
+                            column_widths=["20%", "15%", "15%", "40%", "10%"]
                         )
                         
                         # Action Buttons
@@ -402,7 +402,7 @@ def create_interface():
                     
                     # AI Response Section with Tabs
                     with gr.Column():
-                        gr.Markdown("**🤖 AI Agent Response & Thinking Process**")
+                        gr.Markdown("**🤖 AI Agent Response & Agent Loop**")
                         
                         with gr.Tabs():
                             # AI Response Tab
@@ -419,13 +419,13 @@ def create_interface():
                                     """
                                 )
                             
-                            # Thinking Process Tab
-                            with gr.TabItem("🧠 Thinking Process"):
+                            # Agent Loop Tab
+                            with gr.TabItem("🧠 Agent Loop"):
                                 thinking_process = gr.Markdown(
                                     """
                                     <div>
                                         <div style="text-align: center; padding: 40px; color: #6c757d;">
-                                            <h3>🤔 AI Thinking Process</h3>
+                                            <h3>🤔 AI Agent Loop</h3>
                                             <p>This panel will show the AI agent's real-time thinking process, including:</p>
                                             <ul style="text-align: left; display: inline-block;">
                                                 <li>🧠 Reasoning steps and analysis</li>
@@ -468,7 +468,7 @@ def create_interface():
             inputs=sidebar_state,
             outputs=[sidebar_left, sidebar_state]
         ).then(
-            fn=lambda visible: "▶ Show Sidebar" if not visible else "◀ Hide Sidebar",
+            fn=lambda visible: "▶ Show Configuration" if not visible else "◀ Hide Configuration",
             inputs=sidebar_state,
             outputs=toggle_btn
         )
@@ -529,7 +529,7 @@ if __name__ == "__main__":
     print("🌐 Starting web interface...")
     print("📱 Access URL: http://localhost:7860")
     print("🔧 Debug Mode: Enabled")
-    print("🧠 Real-time AI Thinking Process: Available")
+    print("🧠 Real-time AI Agent Loop: Available")
     print("="*60)
     
     # Create and launch the enhanced interface

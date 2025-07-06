@@ -222,10 +222,10 @@ class StreamingEventCollector:
     def get_thinking_process(self) -> str:
         """Get formatted thinking process display"""
         if not self.events:
-            return "🤔 **Thinking Process**\n\nNo events captured yet..."
+            return "🤔 **Agent Loop**\n\nNo events captured yet..."
         
         display_parts = [
-            "# 🧠 AI Agent Thinking Process\n",
+            "# 🧠 AI Agent Agent Loop\n",
             f"**Session Started:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
             "---\n\n"
         ]
@@ -235,7 +235,7 @@ class StreamingEventCollector:
             if formatted_event.strip():  # Only add non-empty events
                 display_parts.append(formatted_event)
         
-        display_parts.append("\n---\n**End of Thinking Process**")
+        display_parts.append("\n---\n**End of Agent Loop**")
         
         return "".join(display_parts)
     
