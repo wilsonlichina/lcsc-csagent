@@ -81,7 +81,7 @@ pip install -r requirements.txt
 
 ### 2. Action Buttons
 - **🔄 Refresh:** Reload emails from the `emails` directory
-- **🤖 AI Copilot:** Generate intelligent response for selected email
+- **🤖 AI Agent Loop:** Generate intelligent response for selected email
 
 ### 3. Email Details Panel
 - **Location:** Right side, top panel
@@ -102,7 +102,7 @@ pip install -r requirements.txt
 
 ### Generate AI Response with Streaming
 1. **Select an email** by clicking on it in the email list
-2. **Click the "🤖 AI Copilot" button**
+2. **Click the "🤖 AI Agent Loop" button**
 3. **Watch the real-time thinking process** in the "🧠 Agent Loop" tab
 4. **View the final response** in the "💬 Final Response" tab
 5. **Monitor AI reasoning** including:
@@ -144,7 +144,7 @@ Multiple lines are supported.
 
 ## 🤖 AI Capabilities
 
-The AI Copilot can:
+The AI Agent Loop can:
 - **Analyze customer inquiries** and understand intent with real-time reasoning display
 - **Query business data** (customers, orders, products, inventory) with visible tool usage
 - **Generate professional responses** following LCSC service standards

@@ -124,7 +124,7 @@ def format_ai_response(email: Dict, ai_response: str) -> str:
         str: Formatted AI response string
     """
     return f"""
-## 🤖 AI Copilot Response
+## 🤖 AI Agent Response
 
 **Email:** {email['subject']}  
 **From:** {email['sender']}  
@@ -374,7 +374,7 @@ def handle_ai_copilot_streaming(selected_idx: int):
         final_response = collector.get_final_response()
         if final_response == "No response generated. Please check the thinking process for details.":
             response_display = f"""
-## 🤖 AI Copilot Response
+## 🤖 AI Agent Loop Response
 
 **Email:** {email['subject']}  
 **From:** {email['sender']}  
@@ -522,7 +522,7 @@ def create_interface():
                         # Action Buttons
                         with gr.Row():
                             refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
-                            ai_btn = gr.Button("🤖 AI Copilot", variant="primary")
+                            ai_btn = gr.Button("🤖 AI Agent", variant="primary")
                     
                     # AI Response Group with Tabs
                     with gr.Group():
@@ -535,7 +535,7 @@ def create_interface():
                                     <div>
                                         <div style="text-align: center; padding: 40px; color: #6c757d;">
                                             <h3>🧠 AI Assistant Ready</h3>
-                                            <p>Select an email and click <strong>'AI Copilot'</strong> to create an intelligent customer service reply.</p>
+                                            <p>Select an email and click <strong>'Agent Loop'</strong> to create an intelligent customer service reply.</p>
                                             <p><em>Powered by Claude AI with business context awareness and real-time thinking process.</em></p>
                                         </div>
                                     </div>
@@ -564,7 +564,7 @@ def create_interface():
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Copilot → Watch real-time thinking process → Refresh for new emails"
+                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent Loop → Watch real-time thinking process → Refresh for new emails"
             )
         
         # State management using Gradio State (functional approach)
