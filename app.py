@@ -1,11 +1,13 @@
 """
 LCSC Electronics Email Customer Service System
-Gradio interface with UI formatting functions
+Gradio interface with UI formatting functions and streaming support
 Clean separation between business logic and UI presentation
 """
 
 import gradio as gr
 import re
+import time
+import threading
 from datetime import datetime
 from typing import Optional, List, Dict
 
@@ -16,6 +18,9 @@ from email_manager import (
     refresh_email_state,
     create_email_processor
 )
+
+# Import streaming utilities
+from streaming_utils import StreamingEventCollector, format_streaming_event
 
 
 # UI Constants
@@ -215,35 +220,88 @@ def handle_email_selection(evt: gr.SelectData):
     return details, index
 
 
-def handle_ai_copilot(selected_idx: int):
+def handle_ai_copilot_streaming(selected_idx: int):
     """
-    Process email with AI using functional approach
+    Process email with AI using streaming approach
     
     Args:
         selected_idx: Index of selected email
         
-    Returns:
-        str: Formatted AI response
+    Yields:
+        Tuple: (thinking_process_display, final_response_display)
     """
     if selected_idx < 0:
-        return "Please select an email from the list first."
+        yield "Please select an email from the list first.", "Please select an email from the list first."
+        return
     
     # Get email using functional approach
     email = email_functions['get_email_by_index'](selected_idx)
     if not email:
-        return "❌ Email not found."
+        yield "❌ Email not found.", "❌ Email not found."
+        return
     
     # Extract customer email using core business function
     customer_email = extract_customer_email_from_content(email['content'])
     
+    # Initialize event collector
+    collector = StreamingEventCollector()
+    
     try:
-        # Process with AI using functional approach
-        ai_response = email_functions['process_with_ai'](email['content'], customer_email)
+        # Initialize displays
+        thinking_display = "🚀 **Starting AI Analysis...**\n\nInitializing agent and preparing to process your email...\n\n"
+        response_display = "🤖 **AI Processing Started**\n\nPlease wait while the AI agent analyzes the email and generates a response...\n\n"
         
-        # Format response using UI formatting function
-        return format_ai_response(email, ai_response)
+        yield thinking_display, response_display
+        
+        # Process with AI using streaming
+        for event in email_functions['process_with_ai_streaming'](email['content'], customer_email):
+            # Add event to collector
+            collector.add_event(event)
+            
+            # Format and update thinking process display
+            thinking_display += format_streaming_event(event)
+            
+            # Update response display with final response if available
+            final_response = collector.get_final_response()
+            if final_response and final_response != "No response generated. Please check the thinking process for details.":
+                response_display = format_ai_response(email, final_response)
+            
+            # Yield updated displays
+            yield thinking_display, response_display
+            
+            # Small delay to make streaming visible
+            time.sleep(0.1)
+        
+        # Mark as complete and final update
+        collector.mark_complete()
+        
+        # Final response formatting
+        final_response = collector.get_final_response()
+        if final_response == "No response generated. Please check the thinking process for details.":
+            response_display = f"""
+## 🤖 AI Copilot Response
+
+**Email:** {email['subject']}  
+**From:** {email['sender']}  
+**Processing Time:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
+
+**Status:** ⚠️ Processing completed but no final response was generated.
+Please check the thinking process panel for detailed information about what happened during processing.
+
+{collector.get_summary()}
+"""
+        else:
+            response_display = format_ai_response(email, final_response)
+        
+        # Add session summary to thinking process
+        thinking_display += f"\n\n{collector.get_summary()}"
+        thinking_display += "\n\n✅ **Processing Complete!**"
+        
+        yield thinking_display, response_display
+        
     except Exception as e:
-        return f"❌ Error processing with AI: {str(e)}"
+        error_msg = f"❌ Error processing with AI: {str(e)}"
+        yield thinking_display + f"\n\n{error_msg}", error_msg
 
 
 def get_initial_email_display():
@@ -258,13 +316,14 @@ def get_initial_email_display():
 
 def create_interface():
     """
-    Create the Gradio interface with sidebar using functional email management
+    Create the Gradio interface with sidebar and streaming support
     
     Key Features:
     1. Left sidebar with model selection and email details
     2. Email list display with proper column layout
-    3. AI response generation functionality
-    4. Responsive design with proper component organization
+    3. AI response generation with real-time thinking process
+    4. Streaming display of AI agent's reasoning and tool usage
+    5. Responsive design with proper component organization
     """
     
     with gr.Blocks(
@@ -282,7 +341,7 @@ def create_interface():
                 gr.Markdown(
                     """
                     # 📧 LCSC Electronics Customer Service System
-                    基于Gradio + Strands Agent SDK构建的智能邮件处理系统
+                    基于Gradio + Strands Agent SDK构建的智能邮件处理系统 (with Real-time AI Thinking Process)
                     """
                 )
             
@@ -341,27 +400,50 @@ def create_interface():
                         # Action Buttons
                         with gr.Row():
                             refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
-                            ai_btn = gr.Button("🤖 Generate AI Response", variant="primary")
+                            ai_btn = gr.Button("🤖 AI Copilot", variant="primary")
                     
-                    # AI Response Section
+                    # AI Response Section with Tabs
                     with gr.Column():
-                        gr.Markdown("**🤖 AI-Generated Response**")
+                        gr.Markdown("**🤖 AI Agent Response & Thinking Process**")
                         
-                        ai_response = gr.Markdown(
-                            """
-                            <div>
-                                <div style="text-align: center; padding: 40px; color: #6c757d;">
-                                    <h3>🧠 AI Assistant Ready</h3>
-                                    <p>Select an email and click <strong>'Generate AI Response'</strong> to create an intelligent customer service reply.</p>
-                                    <p><em>Powered by Claude AI with business context awareness.</em></p>
-                                </div>
-                            </div>
-                            """
-                        )
+                        with gr.Tabs():
+                            # AI Response Tab
+                            with gr.TabItem("💬 Final Response"):
+                                ai_response = gr.Markdown(
+                                    """
+                                    <div>
+                                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                            <h3>🧠 AI Assistant Ready</h3>
+                                            <p>Select an email and click <strong>'AI Copilot'</strong> to create an intelligent customer service reply.</p>
+                                            <p><em>Powered by Claude AI with business context awareness and real-time thinking process.</em></p>
+                                        </div>
+                                    </div>
+                                    """
+                                )
+                            
+                            # Thinking Process Tab
+                            with gr.TabItem("🧠 Thinking Process"):
+                                thinking_process = gr.Markdown(
+                                    """
+                                    <div>
+                                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                            <h3>🤔 AI Thinking Process</h3>
+                                            <p>This panel will show the AI agent's real-time thinking process, including:</p>
+                                            <ul style="text-align: left; display: inline-block;">
+                                                <li>🧠 Reasoning steps and analysis</li>
+                                                <li>🔧 Business tools being used</li>
+                                                <li>💭 Decision-making process</li>
+                                                <li>⚡ Processing lifecycle events</li>
+                                            </ul>
+                                            <p><em>Start processing an email to see the magic happen!</em></p>
+                                        </div>
+                                    </div>
+                                    """
+                                )
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Select Model → Click Email → Generate AI Response → Refresh for new emails"
+                "**💡 Tips**: Select Model → Click Email → AI Copilot → Watch real-time thinking process → Refresh for new emails"
             )
         
         # State management using Gradio State (functional approach)
@@ -400,11 +482,11 @@ def create_interface():
             show_progress=True
         )
         
-        # AI processing handler using functional approach
+        # AI processing handler with streaming support
         ai_btn.click(
-            fn=handle_ai_copilot,
+            fn=handle_ai_copilot_streaming,
             inputs=selected_email_idx,
-            outputs=ai_response,
+            outputs=[thinking_process, ai_response],
             show_progress=True
         )
     
@@ -424,7 +506,9 @@ def get_system_info():
         'ai_agent_available': email_state['agent'] is not None,
         'architecture': 'Functional Programming',
         'immutable_data': True,
-        'pure_functions': True
+        'pure_functions': True,
+        'streaming_enabled': True,
+        'async_support': True
     }
 
 
@@ -433,7 +517,7 @@ if __name__ == "__main__":
     system_info = get_system_info()
     
     print("\n" + "="*60)
-    print("🚀 LCSC EMAIL CUSTOMER SERVICE SYSTEM")
+    print("🚀 LCSC EMAIL CUSTOMER SERVICE SYSTEM (STREAMING ENABLED)")
     print("="*60)
     print(f"📧 Email Count:        {system_info['email_count']} emails loaded")
     print(f"📁 Emails Directory:   {system_info['emails_directory']}")
@@ -441,10 +525,13 @@ if __name__ == "__main__":
     print(f"🏗️  Architecture:       {system_info['architecture']}")
     print(f"🔒 Data Management:    {'✅ Immutable' if system_info['immutable_data'] else '❌ Mutable'}")
     print(f"⚡ Function Style:     {'✅ Pure Functions' if system_info['pure_functions'] else '❌ Impure Functions'}")
+    print(f"🌊 Streaming Support:  {'✅ Enabled' if system_info['streaming_enabled'] else '❌ Disabled'}")
+    print(f"🔄 Async Support:      {'✅ Enabled' if system_info['async_support'] else '❌ Disabled'}")
     print("="*60)
     print("🌐 Starting web interface...")
     print("📱 Access URL: http://localhost:7860")
     print("🔧 Debug Mode: Enabled")
+    print("🧠 Real-time AI Thinking Process: Available")
     print("="*60)
     
     # Create and launch the enhanced interface

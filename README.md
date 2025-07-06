@@ -1,5 +1,21 @@
 # LCSC Electronics Email Customer Service System - Usage Guide
 
+## 🆕 New Features - Real-time AI Thinking Process
+
+### Streaming AI Response Generation
+The system now includes **real-time streaming** of the AI agent's thinking process, powered by Strands Agent SDK's async iterators. You can now see:
+
+- 🧠 **Real-time reasoning**: Watch the AI think through problems step by step
+- 🔧 **Tool usage**: See which business tools the AI is calling and why
+- ⚡ **Processing lifecycle**: Monitor initialization, cycles, and completion
+- 💭 **Decision making**: Understand how the AI reaches its conclusions
+
+### Enhanced UI Features
+- **Tabbed Interface**: Separate tabs for final response and thinking process
+- **Live Updates**: Real-time streaming of AI analysis
+- **Event Categorization**: Different types of events are clearly marked
+- **Session Summary**: Comprehensive overview of each AI processing session
+
 ## Setup
 
 1. **Clone the repository**
@@ -65,11 +81,16 @@ pip install -r requirements.txt
 2. The email details will automatically appear in the right panel
 3. You can see the complete email content, sender information, and timestamp
 
-### Generate AI Response
+### Generate AI Response with Streaming
 1. **Select an email** by clicking on it in the email list
 2. **Click the "🤖 AI Copilot" button**
-3. **Wait for processing** - the AI will analyze the email and generate a response
-4. **Review the response** in the AI Response panel
+3. **Watch the real-time thinking process** in the "🧠 Thinking Process" tab
+4. **View the final response** in the "💬 Final Response" tab
+5. **Monitor AI reasoning** including:
+   - Tool usage and business logic execution
+   - Step-by-step decision making
+   - Error handling and recovery
+   - Processing lifecycle events
 
 ### Refresh Email List
 1. **Add new emails** to the `emails` directory (as `.txt` files)
@@ -105,15 +126,23 @@ Multiple lines are supported.
 ## 🤖 AI Capabilities
 
 The AI Copilot can:
-- **Analyze customer inquiries** and understand intent
-- **Query business data** (customers, orders, products, inventory)
+- **Analyze customer inquiries** and understand intent with real-time reasoning display
+- **Query business data** (customers, orders, products, inventory) with visible tool usage
 - **Generate professional responses** following LCSC service standards
+- **Stream thinking process** showing step-by-step analysis and decision making
 - **Handle various scenarios:**
   - Price inquiries
   - Order status checks
   - Product information requests
   - Shipping and logistics questions
   - Order modifications and cancellations
+
+### Streaming Features
+- **Real-time Event Display**: See AI events as they happen
+- **Tool Usage Monitoring**: Watch which business tools are being called
+- **Reasoning Process**: Understand the AI's thought process
+- **Error Handling**: Real-time error reporting and recovery
+- **Session Analytics**: Comprehensive summary of each processing session
 
 ## 🔧 Technical Details
 
@@ -126,9 +155,12 @@ The AI Copilot can:
 ### File Structure
 ```
 lcsc-csagent/
-├── app.py              # Main Gradio application
-├── agent.py            # AI agent configuration
+├── app.py              # Main Gradio application with streaming UI
+├── agent.py            # AI agent configuration with async support
 ├── business_tools.py   # Business logic and tools
+├── email_manager.py    # Email management with streaming support
+├── streaming_utils.py  # Streaming event processing utilities
+├── test_streaming.py   # Test suite for streaming functionality
 ├── emails/             # Email files directory
 │   ├── email1.txt
 │   ├── email2.txt

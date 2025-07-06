@@ -1,15 +1,16 @@
 """
 LCSC Electronics Email Management - Core Business Logic
-Pure functions for email parsing, management, and AI processing
+Pure functions for email parsing, management, and AI processing with streaming support
 Function-style approach without classes, separated from UI concerns
 """
 
 import os
 import re
+import asyncio
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, Generator
 from functools import partial
-from agent import create_agent
+from agent import create_agent, run_streaming_process
 
 
 # Constants
@@ -232,7 +233,7 @@ def prepare_ai_context(email_content: str, customer_email: Optional[str] = None)
 
 def process_email_with_ai(agent: object, email_content: str, customer_email: Optional[str] = None) -> str:
     """
-    Process email content with AI agent
+    Process email content with AI agent (non-streaming version for compatibility)
     
     Args:
         agent: AI agent instance
@@ -251,6 +252,30 @@ def process_email_with_ai(agent: object, email_content: str, customer_email: Opt
         return response
     except Exception as e:
         return f"❌ Error processing email with AI: {str(e)}"
+
+
+def process_email_with_ai_streaming(agent: object, email_content: str, customer_email: Optional[str] = None) -> Generator:
+    """
+    Process email content with AI agent using streaming
+    
+    Args:
+        agent: AI agent instance
+        email_content: Email content to process
+        customer_email: Customer email for context
+        
+    Yields:
+        Dict: Streaming events from the agent
+    """
+    if not agent:
+        yield {"error": "❌ AI Agent is not available. Please check the configuration."}
+        return
+    
+    try:
+        # Use the streaming function from agent.py
+        for event in run_streaming_process(agent, email_content, customer_email):
+            yield event
+    except Exception as e:
+        yield {"error": f"❌ Error processing email with AI: {str(e)}"}
 
 
 # State management functions
@@ -339,6 +364,7 @@ def create_email_processor(state: Dict):
     return {
         'get_email_by_index': partial(get_email_by_index, state['emails_cache']),
         'process_with_ai': partial(process_email_with_ai, state['agent']),
+        'process_with_ai_streaming': partial(process_email_with_ai_streaming, state['agent']),
         'refresh_state': lambda: refresh_email_state(state),
         'get_email_count': lambda: get_email_count(state['emails_cache']),
         'get_emails': lambda: state['emails_cache']
