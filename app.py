@@ -26,7 +26,7 @@ SUBJECT_TRUNCATE_LENGTH = 60
 
 # Model options for the dropdown
 MODEL_OPTIONS = [
-    ("Claude 3.5 Sonnet", "claude-3-5-sonnet"),
+#    ("Claude 3.5 Sonnet", "claude-3-5-sonnet"),
     ("Claude 3.7 Sonnet", "claude-3-7-sonnet")
 ]
 
@@ -88,13 +88,7 @@ def format_email_details(email: Dict) -> str:
         str: Formatted email details string
     """
     return f"""
-## 📧 Email Details
-
-**From:** {email['sender']}  
-**To:** {email['recipient']}  
-**Subject:** {email['subject']}  
-**Send Time:** {email['send_time']}  
-**Status:** {email['status']}  
+ 
 
 **Content:**
 ```
