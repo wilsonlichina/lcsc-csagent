@@ -5,11 +5,9 @@ Clean separation between business logic and UI presentation
 """
 
 import gradio as gr
-import re
 import time
-import threading
 from datetime import datetime
-from typing import Optional, List, Dict
+from typing import List, Dict
 
 # Import core email management system (business logic only)
 from email_manager import (

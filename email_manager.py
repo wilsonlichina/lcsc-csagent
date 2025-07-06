@@ -6,7 +6,6 @@ Function-style approach without classes, separated from UI concerns
 
 import os
 import re
-import asyncio
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple, Generator
 from functools import partial
@@ -231,27 +230,7 @@ def prepare_ai_context(email_content: str, customer_email: Optional[str] = None)
     return f"Customer Email: {customer_email or 'Not provided'}\n\nEmail Content:\n{email_content}"
 
 
-def process_email_with_ai(agent: object, email_content: str, customer_email: Optional[str] = None) -> str:
-    """
-    Process email content with AI agent (non-streaming version for compatibility)
-    
-    Args:
-        agent: AI agent instance
-        email_content: Email content to process
-        customer_email: Customer email for context
-        
-    Returns:
-        str: AI response or error message
-    """
-    if not agent:
-        return "❌ AI Agent is not available. Please check the configuration."
-    
-    try:
-        context = prepare_ai_context(email_content, customer_email)
-        response = agent.run(context)
-        return response
-    except Exception as e:
-        return f"❌ Error processing email with AI: {str(e)}"
+
 
 
 def process_email_with_ai_streaming(agent: object, email_content: str, customer_email: Optional[str] = None) -> Generator:
@@ -363,7 +342,6 @@ def create_email_processor(state: Dict):
     """
     return {
         'get_email_by_index': partial(get_email_by_index, state['emails_cache']),
-        'process_with_ai': partial(process_email_with_ai, state['agent']),
         'process_with_ai_streaming': partial(process_email_with_ai_streaming, state['agent']),
         'refresh_state': lambda: refresh_email_state(state),
         'get_email_count': lambda: get_email_count(state['emails_cache']),

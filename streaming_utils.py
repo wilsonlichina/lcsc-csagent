@@ -84,33 +84,7 @@ def format_streaming_event(event: Dict[str, Any]) -> str:
     return ""
 
 
-def create_thinking_process_display(events: List[Dict[str, Any]]) -> str:
-    """
-    Create a comprehensive thinking process display from multiple events
-    
-    Args:
-        events: List of streaming events
-        
-    Returns:
-        str: Formatted thinking process display
-    """
-    if not events:
-        return "🤔 **Thinking Process**\n\nNo events captured yet..."
-    
-    display_parts = [
-        "# 🧠 AI Agent Thinking Process\n",
-        f"**Session Started:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
-        "---\n\n"
-    ]
-    
-    for event in events:
-        formatted_event = format_streaming_event(event)
-        if formatted_event.strip():  # Only add non-empty events
-            display_parts.append(formatted_event)
-    
-    display_parts.append("\n---\n**End of Thinking Process**")
-    
-    return "".join(display_parts)
+
 
 
 def extract_final_response(events: List[Dict[str, Any]]) -> str:
@@ -247,7 +221,23 @@ class StreamingEventCollector:
     
     def get_thinking_process(self) -> str:
         """Get formatted thinking process display"""
-        return create_thinking_process_display(self.events)
+        if not self.events:
+            return "🤔 **Thinking Process**\n\nNo events captured yet..."
+        
+        display_parts = [
+            "# 🧠 AI Agent Thinking Process\n",
+            f"**Session Started:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n",
+            "---\n\n"
+        ]
+        
+        for event in self.events:
+            formatted_event = format_streaming_event(event)
+            if formatted_event.strip():  # Only add non-empty events
+                display_parts.append(formatted_event)
+        
+        display_parts.append("\n---\n**End of Thinking Process**")
+        
+        return "".join(display_parts)
     
     def get_final_response(self) -> str:
         """Get the final response text"""
