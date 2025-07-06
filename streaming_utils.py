@@ -71,7 +71,7 @@ def format_streaming_event(event: Dict[str, Any]) -> str:
         return f"🔄 **[{timestamp}] NEW CYCLE:** Beginning analysis cycle...\n\n"
     
     if "message" in event:
-        return f"💬 **[{timestamp}] MESSAGE:** New message created\n\n"
+        return f"\n\n💬 **[{timestamp}] MESSAGE:** New message created\n\n"
     
     if event.get("force_stop"):
         reason = event.get("force_stop_reason", "Unknown reason")
