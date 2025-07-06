@@ -25,9 +25,17 @@ def format_streaming_event(event: Dict[str, Any], collector=None) -> str:
     if "error" in event:
         return f"🔴 **[{timestamp}] ERROR:** {event['error']}\n\n"
     
-    # Text generation events
+    # Text generation events - don't display until thinking is complete
     if "data" in event:
-        return event["data"]
+        if collector:
+            # Only return data if we've seen a MESSAGE event (thinking complete)
+            has_message = any(e.get("message") for e in collector.events)
+            if has_message:
+                return event["data"]
+            else:
+                return ""  # Buffer the response data until thinking is done
+        else:
+            return event["data"]
     
     # Tool usage events - improved formatting
     if "current_tool_use" in event:
@@ -69,8 +77,8 @@ def format_streaming_event(event: Dict[str, Any], collector=None) -> str:
                 return ""  # Text is being buffered
         else:
             # Fallback to immediate display - but only if it's substantial
-            if len(reasoning_text.strip()) >= 10:
-                return f"🧠 **[{timestamp}] THINKING:** {reasoning_text}\n\n"
+            if len(reasoning_text.strip()) >= 10:  # Higher threshold for better quality
+                return f"🧠 **[{timestamp}] THINKING:** {reasoning_text.strip()}\n\n"
             else:
                 return ""
     
@@ -104,13 +112,20 @@ def format_streaming_event(event: Dict[str, Any], collector=None) -> str:
 def extract_final_response(events: List[Dict[str, Any]]) -> str:
     """
     Extract the final response text from streaming events
+    Only return response if we've seen a MESSAGE event (indicating thinking is complete)
     
     Args:
         events: List of streaming events
         
     Returns:
-        str: Final response text
+        str: Final response text or empty string if thinking not complete
     """
+    # Check if we have a MESSAGE event indicating completion
+    has_message_event = any(event.get("message") for event in events)
+    
+    if not has_message_event:
+        return ""  # Don't return response until thinking is complete
+    
     response_parts = []
     
     for event in events:
@@ -232,53 +247,37 @@ class StreamingEventCollector:
         })
     
     def should_flush_thinking_buffer(self) -> bool:
-        """Determine if thinking buffer should be flushed"""
+        """Determine if thinking buffer should be flushed - very conservative approach"""
         current_time = time.time()
         buffer_length = len(self.thinking_buffer.strip())
         
-        # Flush conditions (in order of priority):
-        # 1. Buffer ends with sentence-ending punctuation
-        if self.thinking_buffer.rstrip().endswith(('.', '!', '?')):
-            return True
+        # Extremely conservative flushing - only flush when absolutely necessary:
         
-        # 2. Buffer is getting quite long (avoid memory issues)
-        if buffer_length >= 100:
+        # 1. Buffer is extremely long (force flush to avoid memory issues only)
+        if buffer_length >= 2000:
             return True
             
-        # 3. Buffer has reasonable length AND ends with word boundary
-        if (buffer_length >= 30 and 
-            self.thinking_buffer.endswith((' ', ',', ';', ':', '\n'))):
+        # 2. Very long timeout - only flush after very long time with substantial content
+        if current_time - self.last_thinking_flush > 15.0 and buffer_length > 500:
             return True
         
-        # 4. Timeout - force flush after reasonable time
-        if current_time - self.last_thinking_flush > 2.0 and buffer_length > 0:
-            return True
-            
-        # 5. Buffer has multiple complete words (at least 5)
-        if len(self.thinking_buffer.split()) >= 5:
-            return True
-        
+        # Don't flush on punctuation or paragraph breaks - let it accumulate
         return False
     
     def add_thinking_text(self, text: str) -> str:
         """Add thinking text to buffer and return when ready to display"""
+        # Skip empty or whitespace-only text
+        if not text or not text.strip():
+            return ""
+            
         self.thinking_buffer += text
         
         # Check if we should flush based on current conditions
         if self.should_flush_thinking_buffer():
-            # Only flush if we're at a word boundary or it's a timeout/length-based flush
-            at_word_boundary = (text.endswith((' ', '.', '!', '?', '\n', ',', ';', ':', ')')) or 
-                              self.thinking_buffer.rstrip().endswith(('.', '!', '?')))
-            
-            # Force flush for timeout or length conditions even if not at word boundary
-            force_flush = (len(self.thinking_buffer.strip()) >= 100 or 
-                          time.time() - self.last_thinking_flush > 2.0)
-            
-            if at_word_boundary or force_flush:
-                result = self.thinking_buffer.strip()
-                self.thinking_buffer = ""
-                self.last_thinking_flush = time.time()
-                return result
+            result = self.thinking_buffer.strip()
+            self.thinking_buffer = ""
+            self.last_thinking_flush = time.time()
+            return result
         
         return ""
     

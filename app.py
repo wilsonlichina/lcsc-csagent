@@ -307,6 +307,11 @@ def handle_ai_copilot_streaming(selected_idx: int):
         
         yield thinking_display, response_display
         
+        # Batch processing variables
+        last_update_time = time.time()
+        update_interval = 10.0  # Update UI every 10 seconds to allow complete thinking accumulation
+        pending_updates = False
+        
         # Process with AI using streaming
         for event in email_functions['process_with_ai_streaming'](email['content'], customer_email):
             # Add event to collector
@@ -316,17 +321,44 @@ def handle_ai_copilot_streaming(selected_idx: int):
             formatted_event = format_streaming_event(event, collector)
             if formatted_event:  # Only add non-empty formatted events
                 thinking_display += formatted_event
+                pending_updates = True
             
-            # Update response display with final response if available
-            final_response = collector.get_final_response()
-            if final_response and final_response != "No response generated. Please check the thinking process for details.":
-                response_display = format_ai_response(email, final_response)
+            # Special handling for MESSAGE event - flush thinking buffer and show final response
+            if event.get("message"):
+                # Force flush any remaining thinking buffer
+                remaining_thinking = collector.force_flush_thinking_buffer()
+                if remaining_thinking:
+                    timestamp = datetime.now().strftime("%H:%M:%S")
+                    thinking_display += f"🧠 **[{timestamp}] THINKING:** {remaining_thinking}\n\n"
+                
+                # Add the MESSAGE event to thinking display
+                thinking_display += formatted_event
+                
+                # Now get the final response (after MESSAGE event is added)
+                final_response = collector.get_final_response()
+                if final_response and final_response != "No response generated. Please check the thinking process for details.":
+                    response_display = format_ai_response(email, final_response)
+                
+                # Force update when MESSAGE event occurs
+                yield thinking_display, response_display
+                pending_updates = False
+                continue
             
-            # Yield updated displays
-            yield thinking_display, response_display
+            # Only yield updates at intervals or for important events
+            current_time = time.time()
+            should_update = (
+                current_time - last_update_time >= update_interval or
+                "current_tool_use" in event or  # Always show tool usage immediately
+                event.get("init_event_loop") or
+                event.get("start_event_loop") or
+                event.get("force_stop")
+            )
             
-            # Small delay to make streaming visible
-            time.sleep(0.1)
+            if should_update and pending_updates:
+                yield thinking_display, response_display
+                last_update_time = current_time
+                pending_updates = False
+                time.sleep(0.1)  # Brief pause for UI responsiveness
         
         # Mark as complete and final update
         collector.mark_complete()
@@ -336,6 +368,7 @@ def handle_ai_copilot_streaming(selected_idx: int):
         if remaining_thinking:
             timestamp = datetime.now().strftime("%H:%M:%S")
             thinking_display += f"🧠 **[{timestamp}] THINKING:** {remaining_thinking}\n\n"
+            print("thinking_display: " + thinking_display)
         
         # Final response formatting
         final_response = collector.get_final_response()
