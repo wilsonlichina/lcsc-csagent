@@ -1,41 +1,46 @@
 """
-LCSC Electronics Email Management - Functional Programming Style
+LCSC Electronics Email Management - Core Business Logic
 Pure functions for email parsing, management, and AI processing
+Function-style approach without classes, separated from UI concerns
 """
 
 import os
 import re
 from datetime import datetime
-from typing import List, Dict, Optional, Tuple, NamedTuple
+from typing import List, Dict, Optional, Tuple
 from functools import partial
 from agent import create_agent
-
-
-# Data structures for type safety and immutability
-class EmailData(NamedTuple):
-    """Immutable email data structure"""
-    filename: str
-    subject: str
-    sender: str
-    recipient: str
-    send_time: str
-    status: str
-    content: str
-    file_path: str
-
-
-class EmailManagerState(NamedTuple):
-    """Immutable state container for email management"""
-    emails_dir: str
-    agent: Optional[object]
-    emails_cache: List[EmailData]
 
 
 # Constants
 DEFAULT_EMAILS_DIR = "./emails"
 DEFAULT_RECIPIENT = "LCSC Customer Service"
 DEFAULT_STATUS = "Pending"
-SUBJECT_TRUNCATE_LENGTH = 60
+
+
+# Email data creation functions
+def create_email_data(filename: str, subject: str, sender: str, recipient: str, 
+                     send_time: str, status: str, content: str, file_path: str) -> Dict:
+    """Create email data dictionary"""
+    return {
+        'filename': filename,
+        'subject': subject,
+        'sender': sender,
+        'recipient': recipient,
+        'send_time': send_time,
+        'status': status,
+        'content': content,
+        'file_path': file_path
+    }
+
+
+def create_email_manager_state(emails_dir: str, agent: Optional[object], emails_cache: List[Dict]) -> Dict:
+    """Create email manager state dictionary"""
+    return {
+        'emails_dir': emails_dir,
+        'agent': agent,
+        'emails_cache': emails_cache
+    }
 
 
 # Core parsing functions
@@ -104,15 +109,15 @@ def get_file_timestamp(file_path: str) -> str:
 
 
 # Email parsing functions
-def parse_single_email(file_path: str) -> Optional[EmailData]:
+def parse_single_email(file_path: str) -> Optional[Dict]:
     """
-    Parse a single email file into EmailData structure
+    Parse a single email file into email data dictionary
     
     Args:
         file_path: Path to email file
         
     Returns:
-        Optional[EmailData]: Parsed email data or None if parsing fails
+        Optional[Dict]: Parsed email data or None if parsing fails
     """
     try:
         with open(file_path, 'r', encoding='utf-8') as f:
@@ -133,7 +138,7 @@ def parse_single_email(file_path: str) -> Optional[EmailData]:
         # Get timestamp
         send_time = get_file_timestamp(file_path)
         
-        return EmailData(
+        return create_email_data(
             filename=os.path.basename(file_path),
             subject=subject,
             sender=sender,
@@ -169,7 +174,7 @@ def get_email_files(emails_dir: str) -> List[str]:
     return email_files
 
 
-def load_emails_from_directory(emails_dir: str) -> List[EmailData]:
+def load_emails_from_directory(emails_dir: str) -> List[Dict]:
     """
     Load and parse all emails from directory
     
@@ -177,7 +182,7 @@ def load_emails_from_directory(emails_dir: str) -> List[EmailData]:
         emails_dir: Directory containing email files
         
     Returns:
-        List[EmailData]: List of parsed email data
+        List[Dict]: List of parsed email data dictionaries
     """
     email_files = get_email_files(emails_dir)
     emails = []
@@ -188,7 +193,7 @@ def load_emails_from_directory(emails_dir: str) -> List[EmailData]:
             emails.append(email_data)
     
     # Sort by send time (newest first) - functional approach
-    return sorted(emails, key=lambda x: x.send_time, reverse=True)
+    return sorted(emails, key=lambda x: x['send_time'], reverse=True)
 
 
 # AI agent functions
@@ -249,8 +254,8 @@ def process_email_with_ai(agent: object, email_content: str, customer_email: Opt
 
 
 # State management functions
-def create_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR, 
-                              model_name: str = "claude-3-7-sonnet") -> EmailManagerState:
+def create_initial_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR, 
+                                     model_name: str = "claude-3-7-sonnet") -> Dict:
     """
     Create initial email manager state
     
@@ -259,160 +264,84 @@ def create_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR,
         model_name: AI model name
         
     Returns:
-        EmailManagerState: Initial state with loaded emails and agent
+        Dict: Initial state with loaded emails and agent
     """
     agent = initialize_ai_agent(model_name)
     emails = load_emails_from_directory(emails_dir)
     
-    return EmailManagerState(
+    return create_email_manager_state(
         emails_dir=emails_dir,
         agent=agent,
         emails_cache=emails
     )
 
 
-def refresh_email_state(state: EmailManagerState) -> EmailManagerState:
+def refresh_email_state(state: Dict) -> Dict:
     """
     Refresh email state by reloading emails from directory
     
     Args:
-        state: Current email manager state
+        state: Current email manager state dictionary
         
     Returns:
-        EmailManagerState: Updated state with refreshed emails
+        Dict: Updated state with refreshed emails
     """
-    emails = load_emails_from_directory(state.emails_dir)
+    emails = load_emails_from_directory(state['emails_dir'])
     
-    return EmailManagerState(
-        emails_dir=state.emails_dir,
-        agent=state.agent,
+    return create_email_manager_state(
+        emails_dir=state['emails_dir'],
+        agent=state['agent'],
         emails_cache=emails
     )
 
 
-# Display formatting functions
-def format_email_for_display(email: EmailData) -> List[str]:
-    """
-    Format single email for display in UI
-    
-    Args:
-        email: Email data to format
-        
-    Returns:
-        List[str]: Formatted email row for display
-    """
-    subject_display = (
-        email.subject[:SUBJECT_TRUNCATE_LENGTH] + "..." 
-        if len(email.subject) > SUBJECT_TRUNCATE_LENGTH 
-        else email.subject
-    )
-    
-    return [
-        email.sender,
-        email.recipient,
-        email.send_time,
-        email.status,
-        subject_display
-    ]
-
-
-def format_emails_for_display(emails: List[EmailData]) -> List[List[str]]:
-    """
-    Format list of emails for display in UI
-    
-    Args:
-        emails: List of email data
-        
-    Returns:
-        List[List[str]]: Formatted email rows for display
-    """
-    return [format_email_for_display(email) for email in emails]
-
-
-def get_email_by_index(emails: List[EmailData], index: int) -> Optional[EmailData]:
+# Email access functions
+def get_email_by_index(emails: List[Dict], index: int) -> Optional[Dict]:
     """
     Get email by index from list
     
     Args:
-        emails: List of email data
+        emails: List of email data dictionaries
         index: Index to retrieve
         
     Returns:
-        Optional[EmailData]: Email data or None if index invalid
+        Optional[Dict]: Email data or None if index invalid
     """
     if 0 <= index < len(emails):
         return emails[index]
     return None
 
 
-def format_email_details(email: EmailData) -> str:
+def get_email_count(emails: List[Dict]) -> int:
     """
-    Format email details for detailed view
+    Get count of emails
     
     Args:
-        email: Email data to format
+        emails: List of email data dictionaries
         
     Returns:
-        str: Formatted email details string
+        int: Number of emails
     """
-    return f"""
-## 📧 Email Details
-
-**From:** {email.sender}  
-**To:** {email.recipient}  
-**Subject:** {email.subject}  
-**Send Time:** {email.send_time}  
-**Status:** {email.status}  
-
-**Content:**
-```
-{email.content}
-```
-"""
-
-
-def format_ai_response(email: EmailData, ai_response: str) -> str:
-    """
-    Format AI response for display
-    
-    Args:
-        email: Original email data
-        ai_response: AI generated response
-        
-    Returns:
-        str: Formatted AI response string
-    """
-    return f"""
-## 🤖 AI Copilot Response
-
-**Email:** {email.subject}  
-**From:** {email.sender}  
-**Processing Time:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
-
-**AI Generated Response:**
-```
-{ai_response}
-```
-"""
+    return len(emails)
 
 
 # Higher-order functions for creating specialized processors
-def create_email_processor(state: EmailManagerState):
+def create_email_processor(state: Dict):
     """
     Create email processing functions bound to specific state
     
     Args:
-        state: Email manager state
+        state: Email manager state dictionary
         
     Returns:
         Dict: Dictionary of bound functions
     """
     return {
-        'get_emails_for_display': lambda: format_emails_for_display(state.emails_cache),
-        'get_email_by_index': partial(get_email_by_index, state.emails_cache),
-        'process_with_ai': partial(process_email_with_ai, state.agent),
+        'get_email_by_index': partial(get_email_by_index, state['emails_cache']),
+        'process_with_ai': partial(process_email_with_ai, state['agent']),
         'refresh_state': lambda: refresh_email_state(state),
-        'get_email_count': lambda: len(state.emails_cache)
+        'get_email_count': lambda: get_email_count(state['emails_cache']),
+        'get_emails': lambda: state['emails_cache']
     }
 
 
@@ -433,7 +362,7 @@ def extract_customer_email_from_content(content: str) -> Optional[str]:
 
 # Main factory function
 def create_email_management_system(emails_dir: str = DEFAULT_EMAILS_DIR, 
-                                 model_name: str = "claude-3-7-sonnet") -> Tuple[EmailManagerState, Dict]:
+                                 model_name: str = "claude-3-7-sonnet") -> Tuple[Dict, Dict]:
     """
     Factory function to create complete email management system
     
@@ -442,35 +371,11 @@ def create_email_management_system(emails_dir: str = DEFAULT_EMAILS_DIR,
         model_name: AI model name
         
     Returns:
-        Tuple[EmailManagerState, Dict]: State and bound functions
+        Tuple[Dict, Dict]: State dictionary and bound functions dictionary
     """
-    state = create_email_manager_state(emails_dir, model_name)
+    state = create_initial_email_manager_state(emails_dir, model_name)
     functions = create_email_processor(state)
     
-    print(f"📧 Email Management System initialized with {len(state.emails_cache)} emails")
+    print(f"📧 Email Management System initialized with {len(state['emails_cache'])} emails")
     
     return state, functions
-
-
-# Example usage and testing
-if __name__ == "__main__":
-    print("🧪 Testing Functional Email Management System...")
-    
-    # Create email management system
-    state, funcs = create_email_management_system()
-    
-    print(f"✅ System initialized with {funcs['get_email_count']()} emails")
-    
-    # Test email display formatting
-    display_data = funcs['get_emails_for_display']()
-    if display_data:
-        print("✅ First email display format:")
-        print(f"   {display_data[0]}")
-    
-    # Test email retrieval
-    first_email = funcs['get_email_by_index'](0)
-    if first_email:
-        print("✅ First email details available")
-        print(f"   Subject: {first_email.subject}")
-    
-    print("✅ All functional components working correctly")

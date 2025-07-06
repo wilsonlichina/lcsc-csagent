@@ -1,30 +1,25 @@
 """
 LCSC Electronics Email Customer Service System
-Gradio interface using functional programming style email management
+Gradio interface with UI formatting functions
+Clean separation between business logic and UI presentation
 """
 
 import gradio as gr
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
 
-# Import functional email management system
+# Import core email management system (business logic only)
 from email_manager import (
     create_email_management_system,
-    format_email_details,
-    format_ai_response,
     extract_customer_email_from_content,
     refresh_email_state,
-    format_emails_for_display
+    create_email_processor
 )
 
 
-# Global state management using functional approach
-# Instead of a class instance, we use a state object and bound functions
-email_state, email_functions = create_email_management_system(
-    emails_dir="./emails",
-    model_name="claude-3-7-sonnet"
-)
+# UI Constants
+SUBJECT_TRUNCATE_LENGTH = 60
 
 # Model options for the dropdown
 MODEL_OPTIONS = [
@@ -33,12 +28,110 @@ MODEL_OPTIONS = [
 ]
 
 
+# Global state management using functional approach
+email_state, email_functions = create_email_management_system(
+    emails_dir="./emails",
+    model_name="claude-3-7-sonnet"
+)
+
+
+# UI Formatting Functions (moved from email_manager.py)
+def format_email_for_display(email: Dict) -> List[str]:
+    """
+    Format single email for display in UI
+    
+    Args:
+        email: Email data dictionary to format
+        
+    Returns:
+        List[str]: Formatted email row for display
+    """
+    subject_display = (
+        email['subject'][:SUBJECT_TRUNCATE_LENGTH] + "..." 
+        if len(email['subject']) > SUBJECT_TRUNCATE_LENGTH 
+        else email['subject']
+    )
+    
+    return [
+        email['sender'],
+        email['recipient'],
+        email['send_time'],
+        email['status'],
+        subject_display
+    ]
+
+
+def format_emails_for_display(emails: List[Dict]) -> List[List[str]]:
+    """
+    Format list of emails for display in UI
+    
+    Args:
+        emails: List of email data dictionaries
+        
+    Returns:
+        List[List[str]]: Formatted email rows for display
+    """
+    return [format_email_for_display(email) for email in emails]
+
+
+def format_email_details(email: Dict) -> str:
+    """
+    Format email details for detailed view
+    
+    Args:
+        email: Email data dictionary to format
+        
+    Returns:
+        str: Formatted email details string
+    """
+    return f"""
+## 📧 Email Details
+
+**From:** {email['sender']}  
+**To:** {email['recipient']}  
+**Subject:** {email['subject']}  
+**Send Time:** {email['send_time']}  
+**Status:** {email['status']}  
+
+**Content:**
+```
+{email['content']}
+```
+"""
+
+
+def format_ai_response(email: Dict, ai_response: str) -> str:
+    """
+    Format AI response for display
+    
+    Args:
+        email: Original email data dictionary
+        ai_response: AI generated response
+        
+    Returns:
+        str: Formatted AI response string
+    """
+    return f"""
+## 🤖 AI Copilot Response
+
+**Email:** {email['subject']}  
+**From:** {email['sender']}  
+**Processing Time:** {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}  
+
+**AI Generated Response:**
+```
+{ai_response}
+```
+"""
+
+
+# Gradio Interface Functions
 def refresh_emails():
     """
     Refresh the email list using functional approach
     
-    Key Change: Instead of calling a method on an object instance,
-    we refresh the state and get new display data functionally
+    Returns:
+        List[List[str]]: Updated email display data
     """
     global email_state, email_functions
     
@@ -46,11 +139,10 @@ def refresh_emails():
     email_state = email_functions['refresh_state']()
     
     # Update functions with new state
-    from email_manager import create_email_processor
     email_functions = create_email_processor(email_state)
     
-    # Return new display data
-    return email_functions['get_emails_for_display']()
+    # Return new display data using UI formatting function
+    return format_emails_for_display(email_functions['get_emails']())
 
 
 def change_model(model_name: str):
@@ -87,7 +179,11 @@ def view_email_details(evt: gr.SelectData):
     """
     View detailed email information using functional approach
     
-    Key Change: Uses pure functions instead of object methods
+    Args:
+        evt: Gradio select event data
+        
+    Returns:
+        str: Formatted email details
     """
     if evt.index is None:
         return "Please select an email from the list."
@@ -100,7 +196,7 @@ def view_email_details(evt: gr.SelectData):
     if not email:
         return "❌ Email not found."
     
-    # Use pure function to format email details
+    # Use UI formatting function
     return format_email_details(email)
 
 
@@ -108,7 +204,11 @@ def handle_email_selection(evt: gr.SelectData):
     """
     Handle email selection and return details with index
     
-    Key Change: Combines multiple operations using functional composition
+    Args:
+        evt: Gradio select event data
+        
+    Returns:
+        Tuple: (email details string, selected index)
     """
     details = view_email_details(evt)
     index = evt.index[0] if evt.index else -1
@@ -119,8 +219,11 @@ def handle_ai_copilot(selected_idx: int):
     """
     Process email with AI using functional approach
     
-    Key Change: Uses pure functions and immutable data structures
-    instead of object state manipulation
+    Args:
+        selected_idx: Index of selected email
+        
+    Returns:
+        str: Formatted AI response
     """
     if selected_idx < 0:
         return "Please select an email from the list first."
@@ -130,17 +233,27 @@ def handle_ai_copilot(selected_idx: int):
     if not email:
         return "❌ Email not found."
     
-    # Extract customer email using pure function
-    customer_email = extract_customer_email_from_content(email.content)
+    # Extract customer email using core business function
+    customer_email = extract_customer_email_from_content(email['content'])
     
     try:
         # Process with AI using functional approach
-        ai_response = email_functions['process_with_ai'](email.content, customer_email)
+        ai_response = email_functions['process_with_ai'](email['content'], customer_email)
         
-        # Format response using pure function
+        # Format response using UI formatting function
         return format_ai_response(email, ai_response)
     except Exception as e:
         return f"❌ Error processing with AI: {str(e)}"
+
+
+def get_initial_email_display():
+    """
+    Get initial email display data
+    
+    Returns:
+        List[List[str]]: Formatted email data for initial display
+    """
+    return format_emails_for_display(email_functions['get_emails']())
 
 
 def create_interface():
@@ -219,7 +332,7 @@ def create_interface():
                         # Email list
                         email_list = gr.Dataframe(
                             headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📊 Status", "📝 Subject"],
-                            value=email_functions['get_emails_for_display'](),
+                            value=get_initial_email_display(),
                             interactive=True,
                             wrap=True,
                             column_widths=["20%", "15%", "15%", "10%", "40%"]
@@ -302,12 +415,13 @@ def get_system_info():
     """
     Get system information using functional approach
     
-    Returns information about the current email management system
+    Returns:
+        Dict: Information about the current email management system
     """
     return {
         'email_count': email_functions['get_email_count'](),
-        'emails_directory': email_state.emails_dir,
-        'ai_agent_available': email_state.agent is not None,
+        'emails_directory': email_state['emails_dir'],
+        'ai_agent_available': email_state['agent'] is not None,
         'architecture': 'Functional Programming',
         'immutable_data': True,
         'pure_functions': True
