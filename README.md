@@ -1,9 +1,18 @@
 # LCSC Electronics Email Customer Service System - Usage Guide
 
-## 🆕 New Features - Native Reasoning + Real-time AI Agent Loop
+## 🆕 New Features - Excel Integration + Native Reasoning + Real-time AI Agent Loop
+
+### Excel-Based Email Management
+The system now uses **Excel-based email data** for improved data management:
+
+- 📊 **Excel Integration**: Load emails from `lcsc-emails.xlsx` file
+- 🔄 **Real-time Updates**: Refresh data directly from Excel file
+- 📈 **Scalable Data**: Handle large volumes of email data efficiently
+- 🏷️ **Email Grouping**: Automatic grouping by Email ID for conversation tracking
+- 📋 **Rich Metadata**: Support for CS ID, conversation time, and structured data
 
 ### Native Thinking Capabilities
-The system now includes **native reasoning** powered by Claude's built-in thinking process, providing:
+The system includes **native reasoning** powered by Claude's built-in thinking process, providing:
 
 - 🧠 **Native reasoning**: AI's internal thought process using Claude's native thinking
 - 💭 **Configurable thinking budget**: Adjustable token allocation for reasoning (8K-32K tokens)
@@ -72,15 +81,15 @@ pip install -r requirements.txt
 
 ### 2. Email List Display
 - **Location:** Left side of the interface
-- **Content:** Shows all customer emails with the following columns:
-  - **Sender:** Customer name and email
-  - **Recipient:** LCSC Customer Service
-  - **Send Time:** When the email was received
+- **Content:** Shows all customer emails loaded from Excel with the following columns:
+  - **Email-ID:** Unique identifier for email conversations
+  - **Time:** When the email was received
+  - **Email Content:** First part of the email content
   - **Status:** Current processing status (Pending/Processed)
-  - **Subject:** Email subject line (truncated if too long)
+- **Order:** Emails are displayed in chronological order (oldest first)
 
 ### 2. Action Buttons
-- **🔄 Refresh:** Reload emails from the `emails` directory
+- **🔄 Refresh:** Reload emails from the Excel file (`lcsc-emails.xlsx`)
 - **🤖 AI Agent Loop:** Generate intelligent response for selected email
 
 ### 3. Email Details Panel
@@ -112,35 +121,30 @@ pip install -r requirements.txt
    - Processing lifecycle events
 
 ### Refresh Email List
-1. **Add new emails** to the `emails` directory (as `.txt` files)
-2. **Click the "🔄 Refresh" button** to reload the email list
+1. **Update the Excel file** (`lcsc-emails.xlsx`) with new email data
+2. **Click the "🔄 Refresh Excel Data" button** to reload the email list
 3. **New emails will appear** in the list automatically
 
 ## 📁 Email File Format
 
-The system expects email files in the `emails` directory with the following format:
+The system now uses an Excel file (`lcsc-emails.xlsx`) located in the `emails` directory with the following structure:
 
-```
-Subject: Your email subject here
+**Required columns:**
+- `email-id` - Unique identifier for email conversations
+- `converse-time` - Timestamp of the email
+- `cs-id` - Customer service representative ID
+- `sender` - Email address of the sender
+- `receiver` - Email address of the receiver
+- `email-content` - Full email content (HTML or text)
 
-Name: Customer Name
-Email: customer@example.com
-Company: Customer Company
-Country: Customer Country
+**Excel file location:** `./emails/lcsc-emails.xlsx`
 
-Email content goes here...
-Multiple lines are supported.
-```
-
-**Required fields:**
-- `Subject:` - Email subject line
-- Email content (can be any text)
-
-**Optional fields:**
-- `Name:` - Customer name
-- `Email:` - Customer email address
-- `Company:` - Customer company
-- `Country:` - Customer country
+**Features:**
+- **Email Grouping:** Emails with the same `email-id` are grouped as conversations
+- **First Email Display:** The system shows the first email from each conversation in the main list
+- **Full Conversation Access:** Complete conversation history available for each email ID
+- **Rich Content Support:** Supports both HTML and plain text email content
+- **Metadata Tracking:** Includes CS ID and conversation timestamps for better tracking
 
 ## 🤖 AI Capabilities
 
@@ -174,17 +178,18 @@ The AI Agent Loop can:
 ### File Structure
 ```
 lcsc-csagent/
-├── app.py              # Main Gradio application with streaming UI
-├── agent.py            # AI agent configuration with async support
-├── business_tools.py   # Business logic and tools
-├── email_manager.py    # Email management with streaming support
-├── streaming_utils.py  # Streaming event processing utilities
-├── test_streaming.py   # Test suite for streaming functionality
-├── emails/             # Email files directory
-│   ├── email1.txt
-│   ├── email2.txt
-│   └── ...
-└── data/               # Business data (CSV files)
+├── app.py                      # Main Gradio application with streaming UI
+├── agent.py                    # AI agent configuration with async support
+├── business_tools.py           # Business logic and tools
+├── email_manager.py            # Excel-based email management with streaming support
+├── email_parser.py             # Excel email parsing and data management
+├── streaming_utils.py          # Streaming event processing utilities
+├── data_manager.py             # Data management utilities
+├── run_app.sh                  # Application startup script
+├── emails/                     # Email files directory
+│   ├── lcsc-emails.xlsx        # Main Excel file with email data
+│   └── ...                     # Legacy email files (optional)
+└── data/                       # Business data (CSV files)
     ├── customers.csv
     ├── orders.csv
     └── ...
@@ -193,7 +198,7 @@ lcsc-csagent/
 ### Configuration
 - **AI Model:** Claude 3.7 Sonnet (configurable in `agent.py`)
 - **Server Port:** 7860 (configurable in `app.py`)
-- **Email Directory:** `./emails` (configurable in `email_manager.py`)
+- **Excel File:** `./emails/lcsc-emails.xlsx` (configurable in `email_manager.py`)
 
 ## 🚨 Troubleshooting
 
@@ -206,8 +211,9 @@ lcsc-csagent/
 
 2. **"No emails found"**
    - Check if `emails` directory exists
-   - Verify email files have `.txt` extension
-   - Ensure files are readable
+   - Verify `lcsc-emails.xlsx` file exists and is readable
+   - Ensure Excel file has the required columns
+   - Check Excel file format and data integrity
 
 3. **Interface not loading**
    - Check if port 7860 is available

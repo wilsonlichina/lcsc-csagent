@@ -9,7 +9,7 @@ import time
 from datetime import datetime
 from typing import List, Dict
 
-# Import core email management system (business logic only)
+# Import core email management system (business logic only) - Excel integration
 from email_manager import (
     create_email_management_system,
     extract_customer_email_from_content,
@@ -47,7 +47,7 @@ DEFAULT_AGENT_CONFIG = {
 
 # Global state management using functional approach with reasoning support
 email_state, email_functions = create_email_management_system(
-    emails_dir="./emails",
+    excel_file="./emails/lcsc-emails.xlsx",
     model_name="claude-3-7-sonnet",
     config=DEFAULT_AGENT_CONFIG
 )
@@ -64,18 +64,29 @@ def format_email_for_display(email: Dict) -> List[str]:
     Returns:
         List[str]: Formatted email row for display
     """
-    subject_display = (
-        email['subject'][:SUBJECT_TRUNCATE_LENGTH] + "..." 
-        if len(email['subject']) > SUBJECT_TRUNCATE_LENGTH 
-        else email['subject']
+    # Extract content preview for subject column
+    content = email.get('content', '')
+    # Remove HTML tags and get first meaningful text
+    import re
+    clean_content = re.sub(r'<[^>]+>', '', content)  # Remove HTML tags
+    clean_content = re.sub(r'\s+', ' ', clean_content).strip()  # Normalize whitespace
+    
+    # Get first meaningful part of content for subject display
+    content_preview = (
+        clean_content[:SUBJECT_TRUNCATE_LENGTH] + "..." 
+        if len(clean_content) > SUBJECT_TRUNCATE_LENGTH 
+        else clean_content
     )
     
+    # If content is empty or very short, use original subject as fallback
+    if not content_preview or len(content_preview.strip()) < 10:
+        content_preview = email.get('subject', 'No content available')
+    
     return [
-        email['sender'],
-        email['recipient'],
-        email['send_time'],
-        subject_display,
-        email['status']
+        email.get('email_id', 'Unknown'),  # Email-ID instead of sender
+        email.get('send_time', 'Unknown'),  # Converse-time instead of recipient
+        content_preview,  # Content preview instead of subject
+        email.get('status', 'Pending')  # Keep status
     ]
 
 
@@ -178,7 +189,7 @@ def update_reasoning_config(enable_thinking: bool, thinking_budget: int, max_tok
     
     # Reinitialize system with new config
     email_state, email_functions = create_email_management_system(
-        emails_dir="./emails",
+        excel_file="./emails/lcsc-emails.xlsx",
         model_name=current_model,
         config=DEFAULT_AGENT_CONFIG
     )
@@ -197,7 +208,7 @@ def change_model(model_name: str):
     
     # Create new email management system with the selected model and reasoning config
     email_state, email_functions = create_email_management_system(
-        emails_dir="./emails",
+        excel_file="./emails/lcsc-emails.xlsx",
         model_name=model_name,
         config=DEFAULT_AGENT_CONFIG
     )
@@ -214,7 +225,7 @@ def change_model(model_name: str):
     
     # Create new email management system with the selected model and reasoning config
     email_state, email_functions = create_email_management_system(
-        emails_dir="./emails",
+        excel_file="./emails/lcsc-emails.xlsx",
         model_name=model_name,
         config=DEFAULT_AGENT_CONFIG
     )
@@ -512,16 +523,16 @@ def create_interface():
                         
                         # Email list
                         email_list = gr.Dataframe(
-                            headers=["👤 Sender", "📧 Recipient", "🕒 Time", "📝 Subject","📊 Status"],
+                            headers=["🆔 Email-ID", "🕒 Time", "📝 Email Content", "📊 Status"],
                             value=get_initial_email_display(),
                             interactive=True,
                             wrap=True,
-                            column_widths=["20%", "15%", "15%", "40%", "10%"]
+                            column_widths=["15%", "20%", "55%", "10%"]
                         )
                         
                         # Action Buttons
                         with gr.Row():
-                            refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
+                            refresh_btn = gr.Button("🔄 Refresh Excel Data", variant="secondary")
                             ai_btn = gr.Button("🤖 AI Agent", variant="primary")
                     
                     # AI Response Group with Tabs
@@ -564,7 +575,7 @@ def create_interface():
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent Loop → Watch real-time thinking process → Refresh for new emails"
+                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent Loop → Watch real-time thinking process → Refresh for updated Excel data"
             )
         
         # State management using Gradio State (functional approach)
@@ -631,7 +642,7 @@ def get_system_info():
     """
     return {
         'email_count': email_functions['get_email_count'](),
-        'emails_directory': email_state['emails_dir'],
+        'excel_file': email_state['excel_file'],
         'ai_agent_available': email_state['agent'] is not None,
         'architecture': 'Functional Programming',
         'immutable_data': True,
@@ -652,7 +663,7 @@ if __name__ == "__main__":
     print("🚀 LCSC EMAIL CUSTOMER SERVICE SYSTEM (REASONING + STREAMING ENABLED)")
     print("="*70)
     print(f"📧 Email Count:        {system_info['email_count']} emails loaded")
-    print(f"📁 Emails Directory:   {system_info['emails_directory']}")
+    print(f"📊 Excel File:         {system_info['excel_file']}")
     print(f"🤖 AI Agent Status:    {'✅ Available' if system_info['ai_agent_available'] else '❌ Not Available'}")
     print(f"🏗️  Architecture:       {system_info['architecture']}")
     print(f"🔒 Data Management:    {'✅ Immutable' if system_info['immutable_data'] else '❌ Mutable'}")

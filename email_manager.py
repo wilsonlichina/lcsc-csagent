@@ -1,202 +1,129 @@
 """
-LCSC Electronics Email Management - Core Business Logic
-Pure functions for email parsing, management, and AI processing with streaming support
-Function-style approach without classes, separated from UI concerns
+LCSC Electronics Email Management System - Excel Integration
+Core business logic for email parsing, management, and AI processing with streaming support
+Integrates with EmailParser for Excel-based email data
 """
 
 import os
-import re
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple, Generator
 from functools import partial
 from agent import create_agent, run_streaming_process
+from email_parser import EmailParser, EmailParserError
 
 
 # Constants
-DEFAULT_EMAILS_DIR = "./emails"
+DEFAULT_EXCEL_FILE = "./emails/lcsc-emails.xlsx"
 DEFAULT_RECIPIENT = "LCSC Customer Service"
 DEFAULT_STATUS = "Pending"
 
 
 # Email data creation functions
-def create_email_data(filename: str, subject: str, sender: str, recipient: str, 
-                     send_time: str, status: str, content: str, file_path: str) -> Dict:
-    """Create email data dictionary"""
+def create_email_data(email_id: str, subject: str, sender: str, recipient: str, 
+                     send_time: str, status: str, content: str, cs_id: str = "") -> Dict:
+    """Create email data dictionary compatible with the original format"""
     return {
-        'filename': filename,
+        'email_id': email_id,
+        'filename': f"email_{email_id}.xlsx",  # Virtual filename for compatibility
         'subject': subject,
         'sender': sender,
         'recipient': recipient,
         'send_time': send_time,
         'status': status,
         'content': content,
-        'file_path': file_path
+        'cs_id': cs_id,
+        'file_path': DEFAULT_EXCEL_FILE  # All emails come from the same Excel file
     }
 
 
-def create_email_manager_state(emails_dir: str, agent: Optional[object], emails_cache: List[Dict]) -> Dict:
+def create_email_manager_state(excel_file: str, agent: Optional[object], emails_cache: List[Dict]) -> Dict:
     """Create email manager state dictionary"""
     return {
-        'emails_dir': emails_dir,
+        'excel_file': excel_file,
         'agent': agent,
         'emails_cache': emails_cache
     }
 
 
-# Core parsing functions
-def extract_field_from_content(content: str, field_name: str, default: str = "") -> str:
+# Excel-based email parsing functions
+def parse_excel_email_to_dict(excel_email: Dict) -> Dict:
     """
-    Extract a specific field from email content using regex
+    Convert Excel email data to the expected format
     
     Args:
-        content: Email content string
-        field_name: Field name to extract (e.g., 'Subject', 'Email', 'Name')
-        default: Default value if field not found
+        excel_email: Email data from EmailParser
         
     Returns:
-        str: Extracted field value or default
+        Dict: Email data in expected format
     """
-    pattern = rf'{field_name}[：:]\s*(.+)'
-    match = re.search(pattern, content, re.IGNORECASE)
-    return match.group(1).strip() if match else default
+    # Extract subject from email content if not provided separately
+    content = excel_email.get('email-content', '')
+    
+    # Try to extract subject from content (if it starts with "Subject:")
+    subject = "No Subject"
+    if content.startswith("Subject:"):
+        lines = content.split('\n')
+        if lines:
+            subject = lines[0].replace("Subject:", "").strip()
+            # Remove subject line from content
+            content = '\n'.join(lines[1:]).strip()
+    
+    # Format sender information
+    sender = excel_email.get('sender', 'Unknown')
+    
+    # Format timestamp
+    converse_time = excel_email.get('converse-time', '')
+    if isinstance(converse_time, str):
+        send_time = converse_time
+    else:
+        # Handle pandas Timestamp objects
+        send_time = str(converse_time) if converse_time else datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    return create_email_data(
+        email_id=str(excel_email.get('email-id', '')),
+        subject=subject,
+        sender=sender,
+        recipient=excel_email.get('receiver', DEFAULT_RECIPIENT),
+        send_time=send_time,
+        status=DEFAULT_STATUS,
+        content=content,
+        cs_id=str(excel_email.get('cs-id', ''))
+    )
 
 
-def extract_email_address(content: str) -> str:
+def load_emails_from_excel(excel_file: str) -> List[Dict]:
     """
-    Extract email address from content
+    Load and parse all first emails from Excel file
     
     Args:
-        content: Email content string
+        excel_file: Path to Excel file
         
     Returns:
-        str: Email address or "Unknown"
-    """
-    email_match = re.search(r'([^\s\n]+@[^\s\n]+)', content)
-    return email_match.group(1).strip() if email_match else "Unknown"
-
-
-def format_sender_info(name: str, email: str) -> str:
-    """
-    Format sender information combining name and email
-    
-    Args:
-        name: Sender name
-        email: Sender email
-        
-    Returns:
-        str: Formatted sender string
-    """
-    if name and name.strip() and name != "Unknown":
-        return f"{name.strip()} <{email}>"
-    return email
-
-
-def get_file_timestamp(file_path: str) -> str:
-    """
-    Get file modification timestamp as formatted string
-    
-    Args:
-        file_path: Path to the file
-        
-    Returns:
-        str: Formatted timestamp
+        List[Dict]: List of parsed email data dictionaries (first email per ID)
     """
     try:
-        file_stat = os.stat(file_path)
-        return datetime.fromtimestamp(file_stat.st_mtime).strftime("%Y-%m-%d %H:%M:%S")
-    except Exception:
-        return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-
-# Email parsing functions
-def parse_single_email(file_path: str) -> Optional[Dict]:
-    """
-    Parse a single email file into email data dictionary
-    
-    Args:
-        file_path: Path to email file
+        parser = EmailParser(excel_file)
+        email_ids = parser.get_email_ids()
+        emails = []
         
-    Returns:
-        Optional[Dict]: Parsed email data or None if parsing fails
-    """
-    try:
-        with open(file_path, 'r', encoding='utf-8') as f:
-            content = f.read().strip()
+        for email_id in email_ids:
+            first_email = parser.get_first_email_by_id(email_id)
+            if first_email:
+                email_data = parse_excel_email_to_dict(first_email)
+                emails.append(email_data)
         
-        # Extract fields using pure functions
-        subject = extract_field_from_content(content, 'Subject', 'No Subject')
-        sender_email = extract_field_from_content(content, 'Email', 'Unknown')
-        sender_name = extract_field_from_content(content, 'Name', '')
+        # Sort by send time (oldest first)
+        return sorted(emails, key=lambda x: x['send_time'], reverse=False)
         
-        # If no explicit email field, try to extract from content
-        if sender_email == 'Unknown':
-            sender_email = extract_email_address(content)
-        
-        # Format sender information
-        sender = format_sender_info(sender_name, sender_email)
-        
-        # Get timestamp
-        send_time = get_file_timestamp(file_path)
-        
-        return create_email_data(
-            filename=os.path.basename(file_path),
-            subject=subject,
-            sender=sender,
-            recipient=DEFAULT_RECIPIENT,
-            send_time=send_time,
-            status=DEFAULT_STATUS,
-            content=content,
-            file_path=file_path
-        )
-    except Exception as e:
-        print(f"Error parsing email {file_path}: {e}")
-        return None
-
-
-def get_email_files(emails_dir: str) -> List[str]:
-    """
-    Get list of email files from directory
-    
-    Args:
-        emails_dir: Directory containing email files
-        
-    Returns:
-        List[str]: List of email file paths
-    """
-    if not os.path.exists(emails_dir):
+    except EmailParserError as e:
+        print(f"Error loading emails from Excel: {e}")
         return []
-    
-    email_files = []
-    for filename in os.listdir(emails_dir):
-        if filename.endswith('.txt'):
-            email_files.append(os.path.join(emails_dir, filename))
-    
-    return email_files
+    except Exception as e:
+        print(f"Unexpected error loading emails: {e}")
+        return []
 
 
-def load_emails_from_directory(emails_dir: str) -> List[Dict]:
-    """
-    Load and parse all emails from directory
-    
-    Args:
-        emails_dir: Directory containing email files
-        
-    Returns:
-        List[Dict]: List of parsed email data dictionaries
-    """
-    email_files = get_email_files(emails_dir)
-    emails = []
-    
-    for file_path in email_files:
-        email_data = parse_single_email(file_path)
-        if email_data:
-            emails.append(email_data)
-    
-    # Sort by send time (newest first) - functional approach
-    return sorted(emails, key=lambda x: x['send_time'], reverse=True)
-
-
-# AI agent functions
+# AI agent functions (unchanged from original)
 def initialize_ai_agent(model_name: str = "claude-3-7-sonnet", config: dict = None) -> Optional[object]:
     """
     Initialize AI agent for email processing with reasoning capabilities
@@ -231,9 +158,6 @@ def prepare_ai_context(email_content: str, customer_email: Optional[str] = None)
     return f"Customer Email: {customer_email or 'Not provided'}\n\nEmail Content:\n{email_content}"
 
 
-
-
-
 def process_email_with_ai_streaming(agent: object, email_content: str, customer_email: Optional[str] = None) -> Generator:
     """
     Process email content with AI agent using streaming
@@ -259,14 +183,14 @@ def process_email_with_ai_streaming(agent: object, email_content: str, customer_
 
 
 # State management functions
-def create_initial_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR, 
+def create_initial_email_manager_state(excel_file: str = DEFAULT_EXCEL_FILE, 
                                      model_name: str = "claude-3-7-sonnet",
                                      config: dict = None) -> Dict:
     """
     Create initial email manager state with reasoning capabilities
     
     Args:
-        emails_dir: Directory containing email files
+        excel_file: Path to Excel file containing emails
         model_name: AI model name
         config: Optional configuration dictionary with agent and model settings
         
@@ -274,10 +198,10 @@ def create_initial_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR,
         Dict: Initial state with loaded emails and agent with reasoning
     """
     agent = initialize_ai_agent(model_name, config)
-    emails = load_emails_from_directory(emails_dir)
+    emails = load_emails_from_excel(excel_file)
     
     return create_email_manager_state(
-        emails_dir=emails_dir,
+        excel_file=excel_file,
         agent=agent,
         emails_cache=emails
     )
@@ -285,7 +209,7 @@ def create_initial_email_manager_state(emails_dir: str = DEFAULT_EMAILS_DIR,
 
 def refresh_email_state(state: Dict) -> Dict:
     """
-    Refresh email state by reloading emails from directory
+    Refresh email state by reloading emails from Excel file
     
     Args:
         state: Current email manager state dictionary
@@ -293,16 +217,16 @@ def refresh_email_state(state: Dict) -> Dict:
     Returns:
         Dict: Updated state with refreshed emails
     """
-    emails = load_emails_from_directory(state['emails_dir'])
+    emails = load_emails_from_excel(state['excel_file'])
     
     return create_email_manager_state(
-        emails_dir=state['emails_dir'],
+        excel_file=state['excel_file'],
         agent=state['agent'],
         emails_cache=emails
     )
 
 
-# Email access functions
+# Email access functions (unchanged from original)
 def get_email_by_index(emails: List[Dict], index: int) -> Optional[Dict]:
     """
     Get email by index from list
@@ -363,30 +287,78 @@ def extract_customer_email_from_content(content: str) -> Optional[str]:
     Returns:
         Optional[str]: Customer email or None
     """
+    import re
     email_match = re.search(r'([^\s\n]+@[^\s\n]+)', content)
     return email_match.group(1) if email_match else None
 
 
 # Main factory function
-def create_email_management_system(emails_dir: str = DEFAULT_EMAILS_DIR, 
+def create_email_management_system(excel_file: str = DEFAULT_EXCEL_FILE, 
                                  model_name: str = "claude-3-7-sonnet",
                                  config: dict = None) -> Tuple[Dict, Dict]:
     """
     Factory function to create complete email management system with reasoning capabilities
     
     Args:
-        emails_dir: Directory containing email files
+        excel_file: Path to Excel file containing emails
         model_name: AI model name
         config: Optional configuration dictionary with agent and model settings
         
     Returns:
         Tuple[Dict, Dict]: State dictionary and bound functions dictionary
     """
-    state = create_initial_email_manager_state(emails_dir, model_name, config)
+    state = create_initial_email_manager_state(excel_file, model_name, config)
     functions = create_email_processor(state)
     
     reasoning_status = "✅ Enabled" if config and config.get("agent", {}).get("enable_native_thinking", True) else "❌ Disabled"
-    print(f"📧 Email Management System initialized with {len(state['emails_cache'])} emails")
+    print(f"📧 Email Management System initialized with {len(state['emails_cache'])} emails from Excel")
     print(f"🧠 Native reasoning: {reasoning_status}")
     
     return state, functions
+
+
+# Additional Excel-specific functions
+def get_email_conversation_by_id(excel_file: str, email_id: str) -> List[Dict]:
+    """
+    Get full conversation for a specific email ID
+    
+    Args:
+        excel_file: Path to Excel file
+        email_id: Email ID to get conversation for
+        
+    Returns:
+        List[Dict]: List of all emails in the conversation
+    """
+    try:
+        parser = EmailParser(excel_file)
+        excel_emails = parser.get_all_emails_by_id(email_id)
+        
+        conversation = []
+        for excel_email in excel_emails:
+            email_data = parse_excel_email_to_dict(excel_email)
+            conversation.append(email_data)
+        
+        # Sort by timestamp
+        return sorted(conversation, key=lambda x: x['send_time'])
+        
+    except EmailParserError as e:
+        print(f"Error getting conversation for email ID {email_id}: {e}")
+        return []
+
+
+def get_excel_email_stats(excel_file: str) -> Dict:
+    """
+    Get statistics about emails in the Excel file
+    
+    Args:
+        excel_file: Path to Excel file
+        
+    Returns:
+        Dict: Statistics about the emails
+    """
+    try:
+        parser = EmailParser(excel_file)
+        return parser.get_summary_stats()
+    except EmailParserError as e:
+        print(f"Error getting email stats: {e}")
+        return {}
