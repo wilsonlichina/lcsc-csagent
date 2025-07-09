@@ -1,0 +1,9 @@
+template_id,document_type,template_name,required_fields,processing_time_hours,processing_fee_usd,format
+DOC001,invoice,Standard Invoice,order_id;customer_info;product_list,24,0,PDF
+DOC002,commercial_invoice,Commercial Invoice,order_id;customs_info;product_details;shipping_info,48,25,PDF
+DOC003,COC,Certificate of Compliance,product_id;batch_code;quality_standards,72,25,PDF
+DOC004,package_list,Packing List,order_id;product_list;quantities;weights,24,0,PDF
+DOC005,customs_declaration,Customs Declaration,order_id;product_details;customs_value;hs_codes,48,25,PDF
+DOC006,certificate_of_compliance,Certificate of Compliance,product_id;test_results;compliance_standards,72,50,PDF
+DOC007,msds,Material Safety Data Sheet,product_id;chemical_composition;safety_info,120,75,PDF
+DOC008,test_report,Product Test Report,product_id;test_parameters;test_results,96,100,PDF

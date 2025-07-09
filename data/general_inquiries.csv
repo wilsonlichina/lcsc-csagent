@@ -1,0 +1,11 @@
+inquiry_type,keywords,standard_response,escalation_required,response_time_hours,priority_level
+price,"price,cost,quote,pricing,how much","We will provide detailed pricing and quote information including bulk discounts if applicable.",No,24,Normal
+technical,"technical,specification,compatibility,datasheet,parameters","Our technical team will provide detailed specifications and compatibility information.",Yes,48,High
+account,"account,login,password,registration,profile","Account-related assistance will be provided with identity verification if required.",No,24,Normal
+return,"return,refund,RMA,exchange,defective","Return process will be initiated following our 30-day return policy with condition assessment.",No,48,Normal
+partnership,"partnership,distributor,reseller,cooperation,business","Partnership inquiries will be forwarded to our business development team for evaluation.",Yes,72,High
+complaint,"complaint,issue,problem,dissatisfied,poor service","Complaints will be investigated thoroughly and escalated to management if necessary.",Yes,12,Critical
+shipping,"shipping,delivery,logistics,tracking,when will arrive","Shipping and logistics information will be provided including tracking details.",No,24,Normal
+quality,"quality,defect,failure,not working,broken","Quality issues will be investigated with potential return/exchange or technical support.",Yes,24,High
+documentation,"documentation,manual,datasheet,certificate,compliance","Technical documentation and certificates will be provided or sourced from manufacturers.",No,48,Normal
+bulk_order,"bulk,volume,large quantity,wholesale,distributor pricing","Bulk order inquiries will receive special pricing and dedicated account management.",No,24,High

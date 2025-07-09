@@ -1,5 +1,5 @@
 customer_id,name,email,phone,company,country,registration_date,vip_level
-CUST001,Zhang San,customer1@example.com,+86-138-0000-0001,Shenzhen Technology Co. Ltd.,China,2023-01-15,Gold
+CUST001,John Zhang,customer1@example.com,+86-138-0000-0001,Shenzhen Technology Co. Ltd.,China,2023-01-15,Gold
 CUST002,John Smith,customer2@example.com,+1-555-0123,Tech Solutions Inc,United States,2023-03-20,Silver
 CUST003,Maria Garcia,customer3@example.com,+34-600-123-456,European Electronics Ltd,Spain,2023-05-10,Bronze
 CUST004,Anonymous Customer,inquiry1@unknown.com,,Unknown Company,United States,2024-07-06,Bronze

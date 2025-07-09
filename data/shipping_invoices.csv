@@ -1,0 +1,4 @@
+order_id,invoice_type,invoice_status,tracking_number,customs_value,currency,shipping_address,processing_status,estimated_delivery_hours,rush_available,rush_fee_usd
+LC789012,commercial_invoice,Processing,SF1234567890,2350.00,USD,"123 Tech Street, San Francisco, CA 94105, USA",In Progress,24,Yes,50
+LC345678,customs_declaration,Pending,,,890.25,EUR,"Calle Mayor 45, Madrid 28013, Spain",Waiting for Shipment,48,Yes,50
+LC123456,commercial_invoice,Not Requested,,1580.50,CNY,"Nanshan District, Shenzhen Technology Park, China",Available,24,Yes,50
