@@ -170,7 +170,7 @@ pip install -r requirements.txt
 
 ### Refresh Email List
 1. **Update the Excel file** (`lcsc-emails.xlsx`) with new email data
-2. **Click the "🔄 Refresh Excel Data" button** to reload the email list
+2. **Click the "🔄 Refresh Emails" button** to reload the email list
 3. **New emails will appear** in the list automatically
 
 ## 📁 Email File Format
@@ -419,7 +419,7 @@ pip install -r requirements.txt
 
 ### Refresh Email List
 1. **Update the Excel file** (`lcsc-emails.xlsx`) with new email data
-2. **Click the "🔄 Refresh Excel Data" button** to reload the email list
+2. **Click the "🔄 Refresh Emails" button** to reload the email list
 3. **New emails will appear** in the list automatically
 
 ## 📁 Email File Format

@@ -85,8 +85,7 @@ def format_email_for_display(email: Dict) -> List[str]:
     return [
         email.get('email_id', 'Unknown'),  # Email-ID instead of sender
         email.get('send_time', 'Unknown'),  # Converse-time instead of recipient
-        content_preview,  # Content preview instead of subject
-        email.get('status', 'Pending')  # Keep status
+        content_preview  # Content preview instead of subject (removed status column)
     ]
 
 
@@ -285,6 +284,115 @@ def handle_email_selection(evt: gr.SelectData):
     return details, index
 
 
+def extract_intent_classification(ai_response: str) -> str:
+    """
+    Extract intent classification and logistics/order status sections from AI response
+    
+    Args:
+        ai_response: Complete AI response text
+        
+    Returns:
+        str: Formatted intent classification and logistics status display
+    """
+    if not ai_response:
+        return """
+        <div style="text-align: center; padding: 40px; color: #6c757d;">
+            <h3>🎯 Intent Classification & Logistics Status</h3>
+            <p>No intent classification or logistics information available yet.</p>
+            <p><em>Process an email to see intent analysis and logistics status results here.</em></p>
+        </div>
+        """
+    
+    # Look for intent classification and logistics sections
+    import re
+    
+    formatted_content = ""
+    
+    # Try to find the Intent Classification section
+    intent_pattern = r'##\s*Intent Classification(.*?)(?=##|$)'
+    intent_match = re.search(intent_pattern, ai_response, re.DOTALL | re.IGNORECASE)
+    
+    if intent_match:
+        intent_content = intent_match.group(1).strip()
+        formatted_content += f"""
+## 🎯 Intent Classification Results
+
+{intent_content}
+"""
+    
+    # Try to find the Logistics/Order Status section
+    logistics_pattern = r'##\s*Logistics/Order Status(.*?)(?=##|$)'
+    logistics_match = re.search(logistics_pattern, ai_response, re.DOTALL | re.IGNORECASE)
+    
+    if logistics_match:
+        logistics_content = logistics_match.group(1).strip()
+        formatted_content += f"""
+
+## 📦 Logistics/Order Status
+
+{logistics_content}
+"""
+    
+    # If we found either section, format and return
+    if formatted_content:
+        formatted_content += f"""
+
+---
+*Analysis completed at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
+        """
+        return formatted_content
+    else:
+        # Fallback: try to extract any intent or logistics related information
+        lines = ai_response.split('\n')
+        intent_lines = []
+        logistics_lines = []
+        
+        for line in lines:
+            # Intent-related keywords
+            if any(keyword in line.lower() for keyword in ['intent', 'confidence', 'primary', 'secondary', 'sub-category']):
+                intent_lines.append(line)
+            # Logistics-related keywords
+            elif any(keyword in line.lower() for keyword in ['order id', 'current status', 'shipping status', 'tracking', 'delivery', 'actions taken']):
+                logistics_lines.append(line)
+        
+        fallback_content = ""
+        
+        if intent_lines:
+            fallback_content += f"""
+## 🎯 Intent Classification Results
+
+{chr(10).join(intent_lines)}
+"""
+        
+        if logistics_lines:
+            fallback_content += f"""
+
+## 📦 Logistics/Order Status
+
+{chr(10).join(logistics_lines)}
+"""
+        
+        if fallback_content:
+            fallback_content += f"""
+
+---
+*Information extracted at {datetime.now().strftime("%Y-%m-%d %H:%M:%S")}*
+            """
+            return fallback_content
+        else:
+            return """
+## 🎯 Intent Classification & Logistics Status
+
+**Status:** Intent classification and logistics information not found in the AI response.
+
+The AI may still be processing or the response format may have changed.
+Please check the Final Response tab for complete information.
+
+---
+*No classification or logistics data available*
+            """
+
+
 def handle_ai_copilot_streaming(selected_idx: int):
     """
     Process email with AI using streaming approach
@@ -293,16 +401,18 @@ def handle_ai_copilot_streaming(selected_idx: int):
         selected_idx: Index of selected email
         
     Yields:
-        Tuple: (thinking_process_display, final_response_display)
+        Tuple: (thinking_process_display, final_response_display, intent_classification_display)
     """
     if selected_idx < 0:
-        yield "Please select an email from the list first.", "Please select an email from the list first."
+        error_msg = "Please select an email from the list first."
+        yield error_msg, error_msg, extract_intent_classification("")
         return
     
     # Get email using functional approach
     email = email_functions['get_email_by_index'](selected_idx)
     if not email:
-        yield "❌ Email not found.", "❌ Email not found."
+        error_msg = "❌ Email not found."
+        yield error_msg, error_msg, extract_intent_classification("")
         return
     
     # Extract customer email using core business function
@@ -315,8 +425,9 @@ def handle_ai_copilot_streaming(selected_idx: int):
         # Initialize displays
         thinking_display = "🚀 **Starting AI Analysis...**\n\nInitializing agent and preparing to process your email...\n\n"
         response_display = "🤖 **AI Processing Started**\n\nPlease wait while the AI agent analyzes the email and generates a response...\n\n"
+        intent_display = extract_intent_classification("")
         
-        yield thinking_display, response_display
+        yield thinking_display, response_display, intent_display
         
         # Batch processing variables
         last_update_time = time.time()
@@ -349,9 +460,11 @@ def handle_ai_copilot_streaming(selected_idx: int):
                 final_response = collector.get_final_response()
                 if final_response and final_response != "No response generated. Please check the thinking process for details.":
                     response_display = format_ai_response(email, final_response)
+                    # Extract intent classification from the final response
+                    intent_display = extract_intent_classification(final_response)
                 
                 # Force update when MESSAGE event occurs
-                yield thinking_display, response_display
+                yield thinking_display, response_display, intent_display
                 pending_updates = False
                 continue
             
@@ -366,7 +479,7 @@ def handle_ai_copilot_streaming(selected_idx: int):
             )
             
             if should_update and pending_updates:
-                yield thinking_display, response_display
+                yield thinking_display, response_display, intent_display
                 last_update_time = current_time
                 pending_updates = False
                 time.sleep(0.1)  # Brief pause for UI responsiveness
@@ -396,18 +509,21 @@ Please check the thinking process panel for detailed information about what happ
 
 {collector.get_summary()}
 """
+            intent_display = extract_intent_classification("")
         else:
             response_display = format_ai_response(email, final_response)
+            # Extract intent classification from the final response
+            intent_display = extract_intent_classification(final_response)
         
         # Add session summary to thinking process
         thinking_display += f"\n\n{collector.get_summary()}"
         thinking_display += "\n\n✅ **Processing Complete!**"
         
-        yield thinking_display, response_display
+        yield thinking_display, response_display, intent_display
         
     except Exception as e:
         error_msg = f"❌ Error processing with AI: {str(e)}"
-        yield thinking_display + f"\n\n{error_msg}", error_msg
+        yield thinking_display + f"\n\n{error_msg}", error_msg, extract_intent_classification("")
 
 
 def get_initial_email_display():
@@ -523,37 +639,23 @@ def create_interface():
                         
                         # Email list
                         email_list = gr.Dataframe(
-                            headers=["🆔 Email-ID", "🕒 Time", "📝 Email Content", "📊 Status"],
+                            headers=["🆔 Email-ID", "🕒 Time", "📝 Email Content"],
                             value=get_initial_email_display(),
                             interactive=True,
                             wrap=True,
-                            column_widths=["15%", "20%", "55%", "10%"]
+                            column_widths=["20%", "25%", "55%"]
                         )
                         
                         # Action Buttons
                         with gr.Row():
-                            refresh_btn = gr.Button("🔄 Refresh Excel Data", variant="secondary")
-                            ai_btn = gr.Button("🤖 AI Agent", variant="primary")
+                            refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
+                            ai_btn = gr.Button("🧠 Smart Analysis", variant="primary")
                     
                     # AI Response Group with Tabs
                     with gr.Group():
                         gr.Markdown("### 🤖 AI Agent Response & Processing")
                         with gr.Tabs():
-                            # AI Response Tab
-                            with gr.TabItem("💬 Final Response"):
-                                ai_response = gr.Markdown(
-                                    """
-                                    <div>
-                                        <div style="text-align: center; padding: 40px; color: #6c757d;">
-                                            <h3>🧠 AI Assistant Ready</h3>
-                                            <p>Select an email and click <strong>'Agent Loop'</strong> to create an intelligent customer service reply.</p>
-                                            <p><em>Powered by Claude AI with business context awareness and real-time thinking process.</em></p>
-                                        </div>
-                                    </div>
-                                    """
-                                )
-                            
-                            # Agent Loop Tab
+                            # Agent Loop Tab (moved to first position)
                             with gr.TabItem("🧠 Agent Loop"):
                                 thinking_process = gr.Markdown(
                                     """
@@ -572,10 +674,46 @@ def create_interface():
                                     </div>
                                     """
                                 )
+                            
+                            # Intent Classification Tab (moved to second position)
+                            with gr.TabItem("🎯 Intent & Logistics"):
+                                intent_classification = gr.Markdown(
+                                    """
+                                    <div>
+                                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                            <h3>🎯 Intent Classification & Logistics Status</h3>
+                                            <p>This panel will show the AI's analysis results, including:</p>
+                                            <ul style="text-align: left; display: inline-block;">
+                                                <li>🎯 Primary and secondary intents</li>
+                                                <li>📊 Confidence levels and sub-categories</li>
+                                                <li>🏷️ Business scenario classification</li>
+                                                <li>📦 Order ID and current status</li>
+                                                <li>🚚 Shipping status and tracking info</li>
+                                                <li>⚡ Actions taken (if applicable)</li>
+                                            </ul>
+                                            <p><em>Process an email to see intent analysis and logistics status!</em></p>
+                                        </div>
+                                    </div>
+                                    """
+                                )
+                            
+                            # AI Response Tab (moved to third position)
+                            with gr.TabItem("💬 Final Response"):
+                                ai_response = gr.Markdown(
+                                    """
+                                    <div>
+                                        <div style="text-align: center; padding: 40px; color: #6c757d;">
+                                            <h3>🧠 AI Assistant Ready</h3>
+                                            <p>Select an email and click <strong>'AI Agent'</strong> to create an intelligent customer service reply.</p>
+                                            <p><em>Powered by Claude AI with business context awareness and real-time thinking process.</em></p>
+                                        </div>
+                                    </div>
+                                    """
+                                )
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent Loop → Watch real-time thinking process → Refresh for updated Excel data"
+                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent → View Intent & Logistics → Check Final Response → Watch Agent Loop → Refresh for updated Excel data"
             )
         
         # State management using Gradio State (functional approach)
@@ -626,7 +764,7 @@ def create_interface():
         ai_btn.click(
             fn=handle_ai_copilot_streaming,
             inputs=selected_email_idx,
-            outputs=[thinking_process, ai_response],
+            outputs=[thinking_process, ai_response, intent_classification],
             show_progress=True
         )
     
