@@ -20,6 +20,9 @@ from email_manager import (
 # Import streaming utilities
 from streaming_utils import StreamingEventCollector, format_streaming_event
 
+# Import batch analysis functionality
+from batch_analyzer import create_batch_processor
+
 
 # UI Constants
 SUBJECT_TRUNCATE_LENGTH = 60
@@ -526,6 +529,29 @@ Please check the thinking process panel for detailed information about what happ
         yield thinking_display + f"\n\n{error_msg}", error_msg, extract_intent_classification("")
 
 
+def handle_batch_analysis():
+    """
+    Handle batch analysis of all emails using existing Smart Analysis functionality
+    Results are output to console only
+    
+    Returns:
+        str: Status message for UI
+    """
+    try:
+        # Create batch processor using existing email functions
+        batch_processor = create_batch_processor(email_functions)
+        
+        # Run batch analysis (console output only)
+        batch_processor()
+        
+        return "✅ Batch analysis completed! Check console for detailed results."
+        
+    except Exception as e:
+        error_msg = f"❌ Batch analysis failed: {str(e)}"
+        print(error_msg)
+        return error_msg
+
+
 def get_initial_email_display():
     """
     Get initial email display data
@@ -650,10 +676,22 @@ def create_interface():
                         with gr.Row():
                             refresh_btn = gr.Button("🔄 Refresh Emails", variant="secondary")
                             ai_btn = gr.Button("🧠 Smart Analysis", variant="primary")
+                            batch_btn = gr.Button("📊 Batch Analysis", variant="secondary")
                     
                     # AI Response Group with Tabs
                     with gr.Group():
                         gr.Markdown("### 🤖 AI Agent Response & Processing")
+                        
+                        # Batch Analysis Status
+                        batch_status = gr.Markdown(
+                            """
+                            <div style="text-align: center; padding: 10px; background-color: #f8f9fa; border-radius: 5px; margin-bottom: 10px;">
+                                <p><strong>📊 Batch Analysis:</strong> Process all emails with Smart Analysis. Results displayed in console.</p>
+                            </div>
+                            """,
+                            visible=False
+                        )
+                        
                         with gr.Tabs():
                             # Agent Loop Tab (moved to first position)
                             with gr.TabItem("🧠 Agent Loop"):
@@ -713,7 +751,7 @@ def create_interface():
             
             # Footer Information
             gr.Markdown(
-                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → AI Agent → View Intent & Logistics → Check Final Response → Watch Agent Loop → Refresh for updated Excel data"
+                "**💡 Tips**: Configure Reasoning → Select Model → Click Email → Smart Analysis → Batch Analysis (console) → View Intent & Logistics → Check Final Response → Watch Agent Loop → Refresh for updated Excel data"
             )
         
         # State management using Gradio State (functional approach)
@@ -766,6 +804,17 @@ def create_interface():
             inputs=selected_email_idx,
             outputs=[thinking_process, ai_response, intent_classification],
             show_progress=True
+        )
+        
+        # Batch analysis handler (console output only)
+        batch_btn.click(
+            fn=handle_batch_analysis,
+            outputs=batch_status,
+            show_progress=True
+        ).then(
+            fn=lambda status: gr.update(visible=True, value=status),
+            inputs=batch_status,
+            outputs=batch_status
         )
     
     return interface
